@@ -93,6 +93,9 @@ try {
   if (hadEnv) fs.renameSync(ENV_BACKUP, ENV_LOCAL)
 }
 
+// GitHub Pages 不要跑 Jekyll，否则带下划线的目录会被吞
+fs.writeFileSync(path.join(OUT, '.nojekyll'), '')
+
 // 出包前把 Key 查一遍：公开产物里不该出现任何 sk- 开头的串
 const leaked = fs
   .readdirSync(path.join(OUT, 'assets'))
