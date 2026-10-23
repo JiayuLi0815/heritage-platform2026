@@ -1,0 +1,17 @@
+# 依赖与产物
+node_modules/
+dist/
+dist-gh/
+.DS_Store
+
+# 本地密钥（不进仓库）
+.env.local
+.env*.local
+
+# 体积大的素材：本机素材盘压出来的图片与三维模型。
+# 线上站点由 gh-pages 分支承载，源码仓库只留可读的工程部分。
+public/img/gallery/
+public/models/
+.backup/
+backup/
+.archive/
