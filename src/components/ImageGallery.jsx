@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { asset } from '../asset.js'
+import { galleryFilesOf } from '../data/gallery.js'
 import { IcChevronL, IcChevronR } from './icons.jsx'
 
 /* ============================================================
@@ -13,8 +14,10 @@ import { IcChevronL, IcChevronR } from './icons.jsx'
 const pad = (n) => String(n).padStart(2, '0')
 const srcOf = (id, i) => asset(`img/gallery/${id}/${pad(i)}.webp`)
 
-export default function ImageGallery({ site, id = site.id, count }) {
-  const n = Math.max(1, count)
+export default function ImageGallery({ site, id = site.id }) {
+  const imageFiles = galleryFilesOf(id)
+  const n = Math.max(1, imageFiles.length)
+  const srcAt = (index) => srcOf(id, imageFiles[index])
   const [i, setI] = useState(0)
   const [on, setOn] = useState(false)
   const thumbs = useRef(null)
@@ -34,10 +37,10 @@ export default function ImageGallery({ site, id = site.id, count }) {
     const img = new Image()
     img.onload = () => setOn(true)
     img.onerror = () => setOn(true)
-    img.src = srcOf(id, k + 1)
+    img.src = srcAt(k)
     /* 顺手把下一张塞进缓存——翻页时就不用等 */
     const next = new Image()
-    next.src = srcOf(id, ((k + 1) % n) + 1)
+    next.src = srcAt((k + 1) % n)
   }, [k, id, n])
 
   useEffect(() => {
@@ -75,7 +78,7 @@ export default function ImageGallery({ site, id = site.id, count }) {
         <img
           key={`${id}-${k}`}
           className={`gal-img${on ? ' on' : ''}`}
-          src={srcOf(id, k + 1)}
+          src={srcAt(k)}
           alt={`${site.name} 影像 ${k + 1}`}
           draggable="false"
         />
@@ -104,7 +107,7 @@ export default function ImageGallery({ site, id = site.id, count }) {
                 aria-selected={j === k}
                 aria-label={`第 ${j + 1} 张`}
               >
-                <img src={asset(`img/gallery/${id}/t${pad(j + 1)}.webp`)} alt="" loading="lazy" />
+                <img src={asset(`img/gallery/${id}/t${imageFiles[j]}.webp`)} alt="" loading="lazy" />
               </button>
             ))}
           </div>

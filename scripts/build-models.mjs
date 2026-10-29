@@ -155,7 +155,11 @@ for (const entry of fs.readdirSync(root)) {
     }
     return out
   })(dir)
-  for (const p of seen) index.set(`${entry}/${path.basename(p)}`, p)
+  for (const p of seen) {
+    const key = `${entry}/${path.basename(p)}`
+    if (index.has(key)) throw new Error(`模型文件名重复，需人工确认：${key}`)
+    index.set(key, p)
+  }
 }
 
 const manifest = {}
@@ -172,7 +176,7 @@ for (const row of rows) {
   const outDir = path.join(OUT_ROOT, String(row.id))
   fs.mkdirSync(outDir, { recursive: true })
 
-  const sorted = [...row.models].sort((a, b) => mIndex(a[0]) - mIndex(b[0]) || a[0].localeCompare(b[0]))
+  const sorted = row.models.filter(([file]) => /\.glb$/i.test(file)).sort((a, b) => mIndex(a[0]) - mIndex(b[0]) || a[0].localeCompare(b[0]))
   const list = []
 
   sorted.forEach(([file], i) => {
@@ -189,9 +193,9 @@ for (const row of rows) {
         return
       }
       execFileSync(
-        'npx',
-        ['--yes', '@gltf-transform/cli', 'optimize', realSrc, dst,
-          '--texture-compress', 'webp', '--texture-size', '2048', '--simplify', 'false'],
+        process.execPath,
+        [path.join(REPO, 'node_modules/@gltf-transform/cli/bin/cli.js'), 'optimize', realSrc, dst,
+          '--compress', 'meshopt', '--texture-compress', 'webp', '--texture-size', '2048', '--simplify', 'false'],
         { stdio: ['ignore', 'ignore', 'inherit'] },
       )
       done++

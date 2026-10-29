@@ -1,38 +1,15 @@
 #!/usr/bin/env bash
-#
-# 一条命令把平台发到阿里云服务器：
-#   https://www.jiayu98518.work/heritage/
-#
-# 用法：
-#   ./deploy.sh              # 构建 + 上传
-#   ./deploy.sh --no-build   # 跳过构建，直接发现有 dist/
-#
-# 说明：产物用相对基址（vite base: './'）打包，所以同一份 dist
-#   既能挂在 /heritage/ 子路径，也能被学院域名反向代理到别的前缀下，
-#   或者整包交给学校托管——都不需要重新构建。
-
+# Requires an already authorized tj-apps SSH account and local rsync.
 set -euo pipefail
 cd "$(dirname "$0")"
-
-SERVER="8.133.243.78"
-WEBROOT="/var/www/heritage"
-
-if [[ "${1:-}" != "--no-build" ]]; then
-  echo "==> 1/2 构建"
-  npx vite build
-else
-  echo "==> 1/2 跳过构建（用现有 dist/）"
+SERVER=tj-apps
+WEBROOT=/data/web/u/wangyifei/heritage
+if [[ "${1:-}" != --no-build ]]; then
+  VITE_DEEPSEEK_API_KEY='' npm run build
 fi
-
-if [[ ! -f dist/index.html ]]; then
-  echo "错误：dist/index.html 不存在，先跑一次完整构建。" >&2
-  exit 1
-fi
-
-echo "==> 2/2 上传到 $SERVER:$WEBROOT"
-COPYFILE_DISABLE=1 rsync -az --delete \
-  --exclude '.DS_Store' \
-  -e "ssh -o BatchMode=yes" \
-  dist/ "$SERVER:$WEBROOT/"
-
-echo "完成：https://www.jiayu98518.work/heritage/"
+node scripts/verify-assets.mjs dist
+[[ "$(ssh -o BatchMode=yes "$SERVER" 'id -un')" == wangyifei ]] || { echo 'SSH user must be wangyifei' >&2; exit 1; }
+ssh "$SERVER" 'mkdir -p /data/web/u/wangyifei/heritage'
+rsync -av --delay-updates --exclude='/index.html' --exclude='/CNAME' --exclude='/404.html' dist/ "$SERVER:$WEBROOT/"
+rsync -av dist/index.html "$SERVER:$WEBROOT/index.html"
+echo 'http://192.168.180.14/u/wangyifei/heritage/'

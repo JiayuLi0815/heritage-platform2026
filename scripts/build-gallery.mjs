@@ -51,6 +51,7 @@ function listImages(dir) {
 }
 
 const manifest = {}
+const galleryFiles = {}
 const failed = []
 let done = 0
 let skipped = 0
@@ -100,7 +101,10 @@ async function buildSite(row) {
       failed.push([row.id, list[i], String(e.message).slice(0, 70)])
     }
   }
-  if (kept.length) manifest[row.id] = kept.length
+  if (kept.length) {
+    manifest[row.id] = kept.length
+    galleryFiles[row.id] = kept
+  }
   files += kept.length
 }
 
@@ -122,10 +126,12 @@ async function worker() {
 }
 await Promise.all(Array.from({ length: POOL }, worker))
 
-/* 清单给前端 import，只记每处有几张——文件名是规整的 01…NN */
+/* 同时保存成功文件编号，坏图不会使前端请求不存在的连续编号。 */
 const body = `/* 本机素材盘压出来的画廊图片。由 scripts/build-gallery.mjs 生成，不要手改。
    键是站点 id，值是张数；文件在 public/img/gallery/<id>/NN.webp（缩略图 tNN.webp）。 */
 export const GALLERY = ${JSON.stringify(manifest, null, 0)}
+export const GALLERY_FILES = ${JSON.stringify(galleryFiles)}
+export const galleryFilesOf = (id) => GALLERY_FILES[id] || []
 
 export const galleryOf = (id) => GALLERY[id] || 0
 `
