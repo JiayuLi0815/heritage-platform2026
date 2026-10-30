@@ -5,6 +5,23 @@
 一个把「全球名录—智能问答—三维体验」连成一条路径的文化遗产数字交互平台。
 收录 991 处文化与混合遗产，覆盖 154 个国家／地区；精选 20 处做三维与沉浸式场景。
 
+##目录
+heritage-platform2026/
+├─ index.html            唯一 HTML 入口，挂载 #root，引 Google Fonts
+├─ vite.config.js        base=/u/wangyifei/heritage/、5175 端口；VITE_GH_PAGES 时换素材目录
+├─ package.json          仅 4 个运行时依赖：react、react-dom、@google/model-viewer、meshoptimizer
+├─ PROJECT.md            项目定位一页纸（做什么/不做什么/验收标准/分工）
+├─ README.md             页面结构与构建说明
+├─ .env.example          DeepSeek 三种接入方式的环境变量模板
+├─ deploy.sh             本地构建 + 校验 + rsync 到 tj-apps 服务器
+├─ deploy-on-server.sh   服务器侧解包发布：SHA256 校验 → 备份旧版 → 再上传
+├─ SHA256SUMS            发布包校验清单
+├─ src/                  应用源码
+├─ public/               运行时静态素材（不入 git 的大件除外）
+├─ scripts/              素材管线（把素材盘离线转成 public/ + src/data 清单）
+├─ proxy/                DeepSeek API Key 代理服务
+├─ work/                 管线中间产物（盘点、缺图清单、校验报告）
+└─ dist/ dist-media/     构建产物 / 媒体副产物（均被 .gitignore 忽略）
 ## 页面结构
 
 | 栏目 | 说明 |

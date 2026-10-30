@@ -913,31 +913,51 @@ img { display: block; max-width: 100%; }
 /* ============================================================
    数字人悬浮球 + 对话面板
    ============================================================ */
-.dh-fab {
+/* 悬浮球默认停在左下角，拖过之后由内联 left/bottom 接管；它不参与页面滚动 */
+.dh-dock {
   position: fixed; left: 26px; bottom: 26px; z-index: 600;
-  display: flex; align-items: center; gap: 11px;
-  padding: 8px 20px 8px 8px; border-radius: var(--r-pill);
+  user-select: none;
+}
+.dh-fab {
+  position: relative; width: 58px; height: 58px; padding: 0; border-radius: 50%;
+  display: grid; place-items: center;
   background: rgba(8, 24, 15, 0.82); border: 1px solid var(--line-inv);
-  backdrop-filter: blur(16px); color: #fff;
+  backdrop-filter: blur(16px); color: #fff; cursor: grab; touch-action: none;
   box-shadow: 0 14px 40px rgba(0, 0, 0, 0.4);
   transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease);
   animation: fabIn 0.6s var(--ease) 0.5s both;
 }
 @keyframes fabIn { from { opacity: 0; transform: translateY(20px) scale(0.9); } to { opacity: 1; transform: none; } }
-.dh-fab:hover { transform: translateY(-3px) scale(1.03); box-shadow: 0 18px 48px rgba(0, 0, 0, 0.5); }
+.dh-fab:hover { transform: translateY(-2px) scale(1.05); box-shadow: 0 18px 48px rgba(0, 0, 0, 0.5); }
+.dh-fab:active, .dh-fab.dragging { cursor: grabbing; }
+/* 拖动时去掉过渡，否则球会慢半拍地追着指针 */
+.dh-fab.dragging { transition: none; animation: none; }
 .dh-fab-orb {
-  width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0; overflow: hidden;
+  width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0; overflow: hidden;
   background: var(--bg-2); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.28);
 }
-.dh-fab-orb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.dh-fab-t { text-align: left; line-height: 1.25; }
-.dh-fab-t .a { font-size: 13.5px; font-weight: 600; white-space: nowrap; }
+.dh-fab-orb img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+/* 文案从球外侧浮出，不改球本身尺寸，拖动手感才稳；球被拖到右半边时改用 flip 朝左展开 */
+.dh-fab-t {
+  position: absolute; left: calc(100% + 12px); top: 50%;
+  transform: translate(-6px, -50%); opacity: 0; pointer-events: none;
+  padding: 9px 15px; border-radius: var(--r-pill); white-space: nowrap;
+  background: rgba(8, 24, 15, 0.92); border: 1px solid var(--line-inv);
+  backdrop-filter: blur(16px); box-shadow: 0 12px 30px rgba(0, 0, 0, 0.42);
+  transition: opacity 0.22s var(--ease), transform 0.22s var(--ease);
+}
+.dh-fab.flip .dh-fab-t { left: auto; right: calc(100% + 12px); transform: translate(6px, -50%); }
+.dh-fab:hover .dh-fab-t, .dh-fab:focus-visible .dh-fab-t { opacity: 1; transform: translate(0, -50%); }
+.dh-fab.dragging .dh-fab-t { opacity: 0; }
+.dh-fab-t .a { font-size: 13.5px; font-weight: 600; color: #fff; }
 
-/* 进遗产页时自己冒出来的一句话：贴着悬浮球，像它刚开口 */
+/* 进遗产页时自己冒出来的一句话：浮在球的正上方，像它刚开口。
+   用 absolute 而不是排在球前面，球拖动时位置不变、气泡也不会把球挤歪。 */
 .dh-bubble {
-  position: fixed; left: 26px; bottom: 96px; z-index: 601;
+  position: absolute; left: 0; bottom: calc(100% + 14px); z-index: 1;
   display: flex; flex-direction: column; gap: 8px; align-items: flex-start;
-  max-width: 320px; padding: 15px 18px 14px;
+  width: max-content; max-width: min(320px, calc(100vw - 40px));
+  padding: 15px 18px 14px;
   border-radius: 16px 16px 16px 5px;
   background: rgba(8, 24, 15, 0.9); border: 1px solid var(--line-inv);
   backdrop-filter: blur(16px); color: #fff; text-align: left;
@@ -946,6 +966,8 @@ img { display: block; max-width: 100%; }
 }
 @keyframes bubbleIn { from { opacity: 0; transform: translateY(10px) scale(0.96); } to { opacity: 1; transform: none; } }
 .dh-bubble:hover { border-color: rgba(255, 255, 255, 0.4); }
+/* 球被拖到右半边时，气泡改为右侧对齐，不会顶出屏幕 */
+.dh-dock.flip .dh-bubble { left: auto; right: 0; border-radius: 16px 16px 5px 16px; }
 .dh-bubble-t { font-size: 13px; line-height: 1.72; color: rgba(255, 255, 255, 0.92); }
 .dh-bubble-go { font-size: 11.5px; font-weight: 600; letter-spacing: 0.04em; color: #7fc4a8; }
 
@@ -1570,8 +1592,10 @@ img { display: block; max-width: 100%; }
   .cat-body { padding-bottom: 80px; }
   .hero { min-height: 92vh; padding: 142px 22px 90px; }
   .dh-panel { left: 12px; right: 12px; bottom: 12px; width: auto; height: min(560px, calc(100vh - 24px)); }
-  .dh-fab { left: 14px; bottom: 14px; padding: 7px 16px 7px 7px; }
-  .dh-bubble { left: 14px; bottom: 82px; max-width: calc(100vw - 28px); padding: 12px 15px; }
+  .dh-dock { left: 14px; bottom: 14px; }
+  .dh-fab { width: 52px; height: 52px; }
+  .dh-fab-orb { width: 41px; height: 41px; }
+  .dh-bubble { max-width: min(280px, calc(100vw - 28px)); padding: 12px 15px; }
   .dh-bubble-t { font-size: 12.5px; line-height: 1.7; }
   .wrap { padding: 0 20px; }
   /* 手机上的名录档案页只有 42vh 给舞台，画廊得整条压低：

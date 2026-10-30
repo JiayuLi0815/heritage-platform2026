@@ -1,20 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { SITES } from '../data/sites.js'
 import RAW from '../data/sites-all.json'
 import { FEATURED_BY_WHC } from '../data/whc-featured.js'
 import { LOCAL_MODELS } from '../data/models.js'
 import { GALLERY } from '../data/gallery.js'
 import { continentOf } from '../data/countries.js'
-import { IcInfo, IcSearch } from '../components/icons.jsx'
+import { asset } from '../asset.js'
+import { IcSearch, IcGlobe } from '../components/icons.jsx'
+import MapLandmarks from '../components/MapLandmarks.jsx'
+import { HeritageGlobe } from './Home.jsx'
+import './MapPage.css'
 
-/* ============================================================
-   全球地图 · 991 处
-   ------------------------------------------------------------
-   缩小看分布，放大看个案：
-   - 视野里的点按屏幕网格合并，合并后画一个带数字的圈，数字就是这一格的数量；
-   - 放大到一格只剩一处，圈变成点，点击进详情；
-   - 底下列表跟着视野走，看到哪、列到哪。
-   ============================================================ */
+/* 统一地图：平面 / 3D 共用筛选、搜索和详情入口。
+   平面地图放大后按屏幕网格聚合点位，页面仅保留地图画布和控件。 */
 
 const W = 1000
 const H = 500
@@ -202,7 +199,14 @@ const ALL = RAW.map((s) => {
   }
 })
 const N3D = ALL.filter((s) => s.has3d).length
-const NIMG = ALL.filter((s) => s.hasImg).length
+const CATEGORIES = ['全部', '文化', '自然', '混合']
+
+function CategoryIcon({ category }) {
+  if (category === '全部') return <IcGlobe w={29} />
+  return <svg viewBox="0 0 32 32" width="29" height="29" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    {category === '文化' ? <><path d="M3 11 16 4l13 7ZM4 27h24M3 30h26M6 14v10m6-10v10m8-10v10m6-10v10"/></> : category === '自然' ? <><path d="M6 26C0 9 18 5 28 3c-1 18-9 27-22 23ZM4 30 23 9M10 22l-1-8m7 2 7-1"/></> : <><circle cx="16" cy="10" r="7"/><circle cx="9" cy="22" r="7"/><circle cx="23" cy="22" r="7"/></>}
+  </svg>
+}
 
 /* ------------------------------------------------------------
    国家
@@ -252,13 +256,45 @@ function findCountry(qn) {
   return best ? { c: best.c, exact: false } : null
 }
 
-export default function MapPage({ onOpenSite }) {
+export default function MapPage({ onOpenSite, setView = () => {}, initialMode = 'flat' }) {
   const [geo, setGeo] = useState(null)
   const [failed, setFailed] = useState(false)
   const [hover, setHover] = useState(null)
   const [q, setQ] = useState('')
-  const [view, setView] = useState({ k: 1, x: 0, y: 0 })
-  const [page, setPage] = useState(1)
+  const [viewport, setViewport] = useState({ k: 1, x: 0, y: 0 })
+  // 修改：平面与 3D 共用页面、搜索和筛选状态，切换时不丢失当前条件。
+  const [mode, setMode] = useState(initialMode)
+  const [continent, setContinent] = useState('全部')
+  const [country, setCountry] = useState('全部')
+  const [globeZoom, setGlobeZoom] = useState(1)
+  const [globeTarget, setGlobeTarget] = useState(null)
+  const [category, setCategory] = useState('全部')
+  const [showLandmarks, setShowLandmarks] = useState(true)
+  const [textureFailed, setTextureFailed] = useState(false)
+  const countryOptions = useMemo(() => COUNTRIES.filter(c => continent === '全部' || continentOf(c.name) === continent).sort((a,b) => a.name.localeCompare(b.name, 'zh')), [continent])
+  const filteredSites = useMemo(() => {
+    const query = norm(q)
+    const place = query ? findPlace(query) : null
+    return ALL.filter(s => {
+      if (category !== '全部' && s.category !== category) return false
+      if (continent !== '全部' && continentOf(s.country) !== continent) return false
+      if (country !== '全部' && s.country.split(/[,，]/)[0].trim() !== country) return false
+      if (!query) return true
+      if (place?.exact && PLACE_BOX[place.p.t]) return place.p.t === '美洲' ? ['北美洲','南美洲'].includes(continentOf(s.country)) : continentOf(s.country) === place.p.t
+      if (place) return true
+      return [s.name, s.nameEn, s.country, ...(s.countries || [])].some(t => matchScore(query, t) !== null)
+        || (norm(s.name).length >= 2 && query.includes(norm(s.name)))
+    })
+  }, [category, continent, country, q])
+  const globeViewportRef = useRef(null)
+  const updateGlobeZoom = value => setGlobeZoom(clamp(value, .7, 3.5))
+  useEffect(() => {
+    const el = globeViewportRef.current
+    if (!el || mode !== 'globe') return
+    const wheel = e => { e.preventDefault(); setGlobeZoom(v => clamp(v * Math.exp(-e.deltaY * .0015), .7, 3.5)) }
+    el.addEventListener('wheel', wheel, { passive: false })
+    return () => el.removeEventListener('wheel', wheel)
+  }, [mode])
 
   const svgRef = useRef(null)
   const drag = useRef(null)
@@ -281,8 +317,8 @@ export default function MapPage({ onOpenSite }) {
   }, [])
 
   useEffect(() => {
-    fetch('/geo/world.geo.json')
-      .then((r) => r.json())
+    fetch(asset('geo/world.geo.json'))
+      .then((r) => { if (!r.ok) throw new Error('Map unavailable'); return r.json() })
       .then(setGeo)
       .catch(() => setFailed(true))
   }, [])
@@ -316,7 +352,7 @@ export default function MapPage({ onOpenSite }) {
   }
 
   const zoomAt = (factor, [px, py]) => {
-    setView((v) => {
+    setViewport((v) => {
       const k2 = clamp(v.k * factor, K_MIN, K_MAX)
       const wx = (px - v.x) / v.k
       const wy = (py - v.y) / v.k
@@ -324,13 +360,13 @@ export default function MapPage({ onOpenSite }) {
     })
   }
 
-  const reset = () => setView({ k: 1, x: 0, y: 0 })
+  const reset = () => setViewport({ k: 1, x: 0, y: 0 })
 
   /* ---------- 飞行 ----------
      搜索定位不是硬切：中心点平移、缩放按几何级数走，
      拖拽或滚轮一碰就取消，不跟用户抢镜头。 */
-  const viewRef = useRef(view)
-  viewRef.current = view
+  const viewportRef = useRef(viewport)
+  viewportRef.current = viewport
   const raf = useRef(0)
   const noMotion =
     typeof window !== 'undefined' &&
@@ -338,10 +374,10 @@ export default function MapPage({ onOpenSite }) {
 
   const flyTo = (to) => {
     if (!to) return
-    const from = viewRef.current
+    const from = viewportRef.current
     cancelAnimationFrame(raf.current)
     if (noMotion) {
-      setView(to)
+      setViewport(to)
       return
     }
     const f = { cx: (W / 2 - from.x) / from.k, cy: (H / 2 - from.y) / from.k, k: from.k }
@@ -354,7 +390,7 @@ export default function MapPage({ onOpenSite }) {
       const k = f.k * Math.pow(t.k / f.k, e)
       const cx = f.cx + (t.cx - f.cx) * e
       const cy = f.cy + (t.cy - f.cy) * e
-      setView(clampView({ k, x: W / 2 - cx * k, y: H / 2 - cy * k }))
+      setViewport(clampView({ k, x: W / 2 - cx * k, y: H / 2 - cy * k }))
       if (p < 1) raf.current = requestAnimationFrame(step)
     }
     raf.current = requestAnimationFrame(step)
@@ -471,10 +507,11 @@ export default function MapPage({ onOpenSite }) {
     } catch { /* 没有活动指针，忽略 */ }
     pointers.current.set(e.pointerId, [e.clientX, e.clientY])
     if (pointers.current.size === 1) {
-      drag.current = { sx: e.clientX, sy: e.clientY, vx: view.x, vy: view.y, moved: 0 }
+      drag.current = { sx: e.clientX, sy: e.clientY, vx: viewport.x, vy: viewport.y, moved: 0 }
     } else if (pointers.current.size === 2) {
+      hit.current = null
       const [a, b] = [...pointers.current.values()]
-      pinch.current = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), k: view.k }
+      pinch.current = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), k: viewport.k }
       drag.current = null
     }
   }
@@ -488,12 +525,12 @@ export default function MapPage({ onOpenSite }) {
       const d = Math.hypot(a[0] - b[0], a[1] - b[1])
       if (pinch.current.d > 0) {
         const mid = toSvg({ clientX: (a[0] + b[0]) / 2, clientY: (a[1] + b[1]) / 2 })
-        zoomAt((pinch.current.k * (d / pinch.current.d)) / view.k, mid)
+        zoomAt((pinch.current.k * (d / pinch.current.d)) / viewport.k, mid)
       }
       return
     }
 
-    // 拖拽状态先取到局部变量：setView 的回调是稍后才跑的，
+    // 拖拽状态先取到局部变量：setViewport 的回调是稍后才跑的，
     // 中间一次 pointerup 就可能把 drag.current 清成 null，回调里再读就崩了
     const d = drag.current
     if (!d) return
@@ -501,7 +538,7 @@ export default function MapPage({ onOpenSite }) {
     const dx = ((e.clientX - d.sx) / r.width) * W
     const dy = ((e.clientY - d.sy) / r.height) * H
     d.moved = Math.max(d.moved, Math.hypot(dx, dy))
-    setView((v) => clampView({ k: v.k, x: d.vx + dx, y: d.vy + dy }))
+    setViewport((v) => clampView({ k: v.k, x: d.vx + dx, y: d.vy + dy }))
   }
 
   const onPointerUp = (e) => {
@@ -519,9 +556,9 @@ export default function MapPage({ onOpenSite }) {
   /* ---------- 合并同一格里的点 ---------- */
   const clusters = useMemo(() => {
     const cells = new Map()
-    for (const s of ALL) {
-      const sx = s.x * view.k + view.x
-      const sy = s.y * view.k + view.y
+    for (const s of filteredSites) {
+      const sx = s.x * viewport.k + viewport.x
+      const sy = s.y * viewport.k + viewport.y
       if (sx < -12 || sx > W + 12 || sy < -12 || sy > H + 12) continue
       const key = `${Math.floor(sx / CELL)}:${Math.floor(sy / CELL)}`
       let c = cells.get(key)
@@ -534,21 +571,21 @@ export default function MapPage({ onOpenSite }) {
     return [...cells.values()]
       .map((c) => ({ n: c.n, x: c.sx / c.n, y: c.sy / c.n, items: c.items }))
       .sort((a, b) => b.n - a.n)
-  }, [view])
+  }, [viewport, filteredSites])
 
   /* ---------- 视野内列表 ----------
      按国家、名称排序而不是按离图心远近：看全球时图心在大西洋中间，
      按距离排会把非洲的十几处顶到最前面，看起来像随机顺序。 */
   const inView = useMemo(() => {
-    const list = ALL.filter((s) => {
-      const sx = s.x * view.k + view.x
-      const sy = s.y * view.k + view.y
+    const list = filteredSites.filter((s) => {
+      const sx = s.x * viewport.k + viewport.x
+      const sy = s.y * viewport.k + viewport.y
       return sx >= 0 && sx <= W && sy >= 0 && sy <= H
     })
     return list.sort(
       (a, b) => a.country.localeCompare(b.country, 'zh') || a.name.localeCompare(b.name, 'zh')
     )
-  }, [view])
+  }, [viewport, filteredSites])
 
   /* ---------- 搜索 ----------
      一个输入框同时认三种东西：遗产名、国家名、地名（大洲 / 大洋 / 区域）。
@@ -563,7 +600,7 @@ export default function MapPage({ onOpenSite }) {
     if (!qn) return null
 
     const hits = []
-    for (const s of ALL) {
+    for (const s of filteredSites) {
       let byName = false
       let sc = matchScore(qn, s.name)
       if (sc !== null) byName = true
@@ -602,110 +639,61 @@ export default function MapPage({ onOpenSite }) {
        ——「中国长城」这种点名某处遗产的，仍按遗产走 */
     const country = findCountry(qn)
     if (country && !siteExact && (country.exact || !hits.some((h) => h.byName))) {
-      const list = [...country.c.sites].sort(
+      const list = country.c.sites.filter(s => category === '全部' || s.category === category).sort(
         (a, b) => Number(a.year) - Number(b.year) || a.name.localeCompare(b.name, 'zh')
       )
       return { kind: 'country', country: { name: country.c.name, sites: list }, total: list.length }
     }
     if (hits.length) return { kind: 'sites', hits: hits.slice(0, 60) }
     return { kind: 'none', query: raw }
-  }, [q])
+  }, [q, filteredSites, category])
 
-  /* 地名命中后，底下列表怎么给：
-     大洲 → 按国家归属列，不用经纬度框。框是给镜头取景的，边界上的
-            埃及、土耳其、欧洲部分的俄罗斯会把名单撑大两百处。
-     大洋、区域 → 没有「归属」可数，给离中心最近的 60 处，标「附近」。 */
-  const placeInfo = useMemo(() => {
-    if (res?.kind !== 'place') return null
-    const p = res.place
-
-    if (p.box) {
-      const list = ALL.filter((s) => {
-        const c = continentOf(s.country)
-        return p.t === '美洲' ? c === '北美洲' || c === '南美洲' : c === p.t
-      })
-      if (list.length) {
-        list.sort(
-          (a, b) => a.country.localeCompare(b.country, 'zh') || a.name.localeCompare(b.name, 'zh')
-        )
-        return { list, near: false }
-      }
-    }
-
-    const cx = p.box ? projX((p.box[1] + p.box[3]) / 2) : projX(p.center[1])
-    const cy = p.box ? projY((p.box[0] + p.box[2]) / 2) : projY(p.center[0])
-    /* 经度按圆算：太平洋中心在西经 148°，斐济在东经 178°，
-       图上隔着整幅，实际就挨着 */
-    const dx = (s) => {
-      const t = Math.abs(s.x - cx)
-      return Math.min(t, W - t)
-    }
-    const d = (s) => dx(s) ** 2 + (s.y - cy) ** 2
-    return { list: [...ALL].sort((a, b) => d(a) - d(b)).slice(0, 60), near: true }
-  }, [res])
-
-  const shown = useMemo(() => {
-    if (res?.kind === 'sites') return res.hits.map((h) => h.s)
-    if (res?.kind === 'country') return res.country.sites
-    if (res?.kind === 'place') return placeInfo.list
-    /* 没搜到就空着，别拿当前视野的名单冒充结果 */
-    if (res?.kind === 'none') return []
-    return inView
-  }, [res, placeInfo, inView])
-
-  /* 地图不在打字时跟着跑：输入只换底下的名单，
-     按回车（或点「定位」）才把镜头推过去。一路打一路飞，
-     每敲一个字地图都晃一下，反而看不清落在哪。 */
+  // 修改：两种地图共用定位目标；输入筛选点位，按回车再移动镜头。
+  const focusView = (to, zoom = 1.6) => {
+    if (!to) return
+    flyTo(to)
+    setGlobeTarget({ lng: ((W / 2 - to.x) / to.k / W) * 360 - 180, lat: 90 - ((H / 2 - to.y) / to.k / H) * 180 })
+    updateGlobeZoom(zoom)
+  }
+  const focusSites = sites => {
+    if (sites.length) focusView(viewForCountry({ sites }))
+  }
+  const changeContinent = value => {
+    setContinent(value); setCountry('全部'); setHover(null)
+    if (value === '全部') { reset(); setGlobeTarget({ lng: 20, lat: 20 }); updateGlobeZoom(1) }
+    else focusView(viewForPlace({ t: value, box: PLACE_BOX[value] }), 1.15)
+  }
   const flyToResult = () => {
     if (!res) return
     cancelAnimationFrame(raf.current)
-    if (res.kind === 'sites') flyTo(viewForSite(res.hits[0].s, viewRef.current.k))
-    else if (res.kind === 'country') flyTo(viewForCountry(res.country))
-    else if (res.kind === 'place') flyTo(viewForPlace(res.place))
+    if (res.kind === 'sites') focusView(viewForSite(res.hits[0].s, viewportRef.current.k), 2)
+    else if (res.kind === 'country' && filteredSites.length) focusSites(filteredSites)
+    else if (res.kind === 'place') focusView(viewForPlace(res.place), 1.15)
   }
   const openEntry = (s) => onOpenSite(s.featured ? s.featured : { ...s, catalog: true })
 
-  /* ---------- 分页 ----------
-     视野里最多能有一千处，一屏列完没人翻得动：每页 60 条，页码直接摆出来。
-     视野变了或换了搜索词，回到第一页。 */
-  const PAGE = 60
-  const pages = Math.max(1, Math.ceil(shown.length / PAGE))
-  const cur = Math.min(page, pages)
-  const rows = shown.slice((cur - 1) * PAGE, cur * PAGE)
-  const listTop = useRef(null)
-
-  useEffect(() => setPage(1), [shown])
-
-  const pageNums = useMemo(() => {
-    if (pages <= 9) return Array.from({ length: pages }, (_, i) => i + 1)
-    const near = [1, pages, cur - 2, cur - 1, cur, cur + 1, cur + 2].filter((p) => p >= 1 && p <= pages)
-    const uniq = [...new Set(near)].sort((a, b) => a - b)
-    const out = []
-    uniq.forEach((p, i) => {
-      if (i && p - uniq[i - 1] > 1) out.push('…')
-      out.push(p)
-    })
-    return out
-  }, [pages, cur])
-
-  const gotoPage = (p) => {
-    setPage(clamp(p, 1, pages))
-    const el = listTop.current
-    if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 108, behavior: 'smooth' })
-  }
-
   return (
-    <div className="map-page">
+    <div className={`map-page heritage-atlas atlas-map-workspace mode-${mode}`}>
       <div className="wrap">
-        <div className="section-head" style={{ marginBottom: 22 }}>
-          <div>
-            <span className="kicker">空间分布</span>
-            <h2>全球地图</h2>
-            <p className="sub">
-              收录的 <b>991</b> 处遗产按真实经纬度落点。搜遗产、国家、大洲或大洋，按回车，地图飞过去并列出结果；
-              滚轮或双指缩放：缩小看分布与数量，放大到一处一格，点开就是那一处的档案——有三维模型的，直接进模型。
-            </p>
-          </div>
+        <div className="map-stage">
+          <aside className="atlas-map-sidebar" aria-label="遗产统计与分类">
+            <div className="atlas-map-heading"><span>THE WORLD HERITAGE ATLAS</span><h1>世界遗产地图</h1></div>
+            <div className="atlas-map-stats">
+              <div><strong>{ALL.length.toLocaleString()}</strong><span>世界遗产地</span></div>
+              <div><strong>{new Set(ALL.flatMap(s => s.countries || [s.country])).size}</strong><span>国家和地区</span></div>
+              <div><strong>{N3D}</strong><span>三维数字档案</span></div>
+            </div>
+            <div className="atlas-map-categories" role="group" aria-label="按遗产类型筛选">
+              {CATEGORIES.map(c => <button key={c} className={category === c ? 'active' : ''} aria-pressed={category === c} onClick={() => { setCategory(c); setHover(null) }}><CategoryIcon category={c}/><span>{c === '全部' ? '全部遗产' : `${c}遗产`}</span></button>)}
+            </div>
+            <div className="atlas-map-compass" aria-hidden="true"><span>N</span><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="35"/><circle cx="50" cy="50" r="29"/><path d="M50 6v88M6 50h88M25 25l50 50m0-50L25 75"/><path d="m50 13 7 30 30 7-30 7-7 30-7-30-30-7 30-7Z"/><path d="m50 13 7 30-7 7-7 7 7 30V50L13 50l30-7Z" fill="currentColor"/></svg><span>S</span><i>W</i><i>E</i></div>
+            <button className="atlas-map-home-link" onClick={() => setView('home')}>← 返回首页</button>
+          </aside>
+          <div className="atlas-map-canvas">
+          <div className="atlas-map-topbar">
+            {/* 修改：左上角统一切换，两种地图保留相同筛选条件。 */}
+            <div className="atlas-map-mode" role="group" aria-label="地图显示方式"><button aria-pressed={mode === 'flat'} onClick={() => setMode('flat')}>平面地图</button><button aria-pressed={mode === 'globe'} onClick={() => setMode('globe')}><IcGlobe w={17}/>3D地图</button></div>
+          <div className="atlas-map-search-panel">
           <div className="map-search">
             <IcSearch w={15} />
             <input
@@ -715,7 +703,7 @@ export default function MapPage({ onOpenSite }) {
                 if (e.key === 'Enter') flyToResult()
                 if (e.key === 'Escape') setQ('')
               }}
-              placeholder="搜遗产、国家、大洲或大洋"
+              placeholder="搜索遗产、国家、大洲或关键词…"
               aria-label="搜索遗产、国家、大洲或大洋，回车定位"
             />
             {q ? (
@@ -729,35 +717,52 @@ export default function MapPage({ onOpenSite }) {
               </>
             ) : null}
           </div>
+          {/* 修改：检索条件同时作用于平面和 3D；大洲改变后清空不再适用的国家。 */}
+          <div className="atlas-map-filters">
+            <select aria-label="按大洲筛选" value={continent} onChange={e => changeContinent(e.target.value)}><option value="全部">全部大洲</option>{Object.keys(PLACE_BOX).filter(c => c !== '美洲').map(c => <option key={c}>{c}</option>)}</select>
+            <select aria-label="按国家筛选" value={country} onChange={e => { setCountry(e.target.value); if (e.target.value !== '全部') focusSites(COUNTRIES.find(c => c.name === e.target.value)?.sites || []); else if (continent !== '全部') focusView(viewForPlace({ box: PLACE_BOX[continent] }), 1.15); else { reset(); setGlobeTarget({ lng: 20, lat: 20 }); updateGlobeZoom(1) } }}><option value="全部">全部国家</option>{countryOptions.map(c => <option key={c.name}>{c.name}</option>)}</select>
+            <select aria-label="按类型筛选" value={category} onChange={e => { setCategory(e.target.value); setHover(null) }}><option value="全部">全部类型</option>{CATEGORIES.filter(c => c !== '全部').map(c => <option key={c} value={c}>{c}遗产</option>)}</select>
+          </div>
+          <div className="atlas-map-filter-status" role="status">{filteredSites.length ? `找到 ${filteredSites.length} 处遗产${q.trim() ? ' · 回车定位' : ''}` : '没有符合条件的遗产，请调整筛选或关键词'}{(q || continent !== '全部' || country !== '全部' || category !== '全部') ? <button onClick={() => { setQ(''); setCategory('全部'); changeContinent('全部') }}>清除筛选</button> : null}</div>
+          </div>
         </div>
-
-        <div className="map-stage">
           <svg
             ref={svgRef}
             className={`map-svg${drag.current ? ' dragging' : ''}`}
             viewBox={`0 0 ${W} ${H}`}
             preserveAspectRatio="xMidYMid meet"
+            style={{ display: mode === 'flat' ? 'block' : 'none' }}
+            role="img"
+            aria-label="可缩放与拖动的世界遗产地图，金色点为遗产，蓝色点含三维模型"
             onPointerDownCapture={() => { hit.current = null }}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
-            onPointerCancel={onPointerUp}
+            onPointerCancel={(e) => { hit.current = null; onPointerUp(e) }}
           >
             <defs>
-              <radialGradient id="mapGlow" cx="50%" cy="42%" r="62%">
-                <stop offset="0%" stopColor="#2f9e6f" stopOpacity="0.16" />
-                <stop offset="100%" stopColor="#2f9e6f" stopOpacity="0" />
+              <radialGradient id="mapGlow" cx="50%" cy="45%" r="70%">
+                <stop offset="25%" stopColor="#020d18" stopOpacity="0" />
+                <stop offset="100%" stopColor="#010912" stopOpacity="0.9" />
               </radialGradient>
+              <filter id="atlasTerrain"><feColorMatrix type="matrix" values=".65 0 0 0 0  0 .72 0 0 .02  0 0 .8 0 .04  0 0 0 1 0"/></filter>
             </defs>
-            <rect width={W} height={H} fill="url(#mapGlow)" />
+            <rect width={W} height={H} fill="#04111e" />
 
-            <g transform={`translate(${view.x} ${view.y}) scale(${view.k})`}>
+            <g transform={`translate(${viewport.x} ${viewport.y}) scale(${viewport.k})`}>
+              {!textureFailed ? <image href={asset('geo/earth.webp')} width={W} height={H} preserveAspectRatio="none" filter="url(#atlasTerrain)" onError={() => setTextureFailed(true)} /> : null}
               <g>{graticule}</g>
-              {landPath ? <path className="map-land" d={landPath} vectorEffect="non-scaling-stroke" /> : null}
+              {landPath ? <path className={`map-land${textureFailed ? ' fallback' : ''}`} d={landPath} vectorEffect="non-scaling-stroke" /> : null}
+            </g>
+            <rect width={W} height={H} fill="url(#mapGlow)" pointerEvents="none" />
+            <g transform={`translate(${viewport.x} ${viewport.y}) scale(${viewport.k})`}>
+              {viewport.k < 3 ? filteredSites.map(s => <g key={s.id} className={`atlas-map-light${s.has3d ? ' has-model' : ''}`} transform={`translate(${s.x} ${s.y})`} role="button" tabIndex={-1} aria-label={`查看${s.name}`} onMouseEnter={() => setHover(s.id)} onMouseLeave={() => setHover(null)} onPointerDown={() => { hit.current = () => openEntry(s) }}>
+                <circle className="light-glow" r={(s.has3d ? 7 : 4) / viewport.k}/><circle className="light-core" r={(s.has3d ? 2.8 : 1.15) / viewport.k}/>
+              </g>) : null}
 
               {/* 字号除以缩放倍数：字随地图走，但屏幕上的大小不变 */}
               {LABELS.map((l) => {
-                const o = labelOpacity(l.lv, view.k)
+                const o = labelOpacity(l.lv, viewport.k)
                 if (o < 0.02) return null
                 // 目标屏幕字号 → 用户单位；除以 k 抵消缩放，字随地图走但不跟着变大
                 const px = l.lv === 1 ? (ppu < 0.75 ? 10.5 : 13) : ppu < 0.75 ? 9 : 9.5
@@ -767,7 +772,7 @@ export default function MapPage({ onOpenSite }) {
                     x={projX(l.lng)}
                     y={projY(l.lat)}
                     className={`map-lbl lv${l.lv}${l.oc ? ' oc' : ''}`}
-                    style={{ fontSize: px / (ppu * view.k), opacity: o }}
+                    style={{ fontSize: px / (ppu * viewport.k), opacity: o }}
                   >
                     {l.t}
                   </text>
@@ -775,13 +780,13 @@ export default function MapPage({ onOpenSite }) {
               })}
             </g>
 
-            {!landPath && !failed ? (
+            {textureFailed && !landPath ? (
               <text x={W / 2} y={H / 2} fill="rgba(255,236,214,0.4)" fontSize="13" textAnchor="middle">
-                正在载入底图…
+                {failed ? '底图暂不可用，仍可搜索和查看遗产档案' : '正在载入底图…'}
               </text>
             ) : null}
 
-            {clusters.map((c, i) => {
+            {viewport.k >= 3 ? clusters.map((c, i) => {
               if (c.n === 1) {
                 const s = c.items[0]
                 const cls = s.has3d ? ' hot' : s.hasImg ? '' : ' bare'
@@ -789,6 +794,10 @@ export default function MapPage({ onOpenSite }) {
                   <g
                     key={s.id}
                     className="map-node"
+                    role="button"
+                    tabIndex="0"
+                    aria-label={`查看${s.name}`}
+                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openEntry(s) } }}
                     transform={`translate(${c.x.toFixed(1)}, ${c.y.toFixed(1)})`}
                     onMouseEnter={() => setHover(s.id)}
                     onMouseLeave={() => setHover(null)}
@@ -808,6 +817,10 @@ export default function MapPage({ onOpenSite }) {
                 <g
                   key={`c${i}`}
                   className="map-cluster"
+                  role="button"
+                  tabIndex="0"
+                  aria-label={`${c.n} 处遗产，点击放大`}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); zoomAt(2.6, [c.x, c.y]) } }}
                   transform={`translate(${c.x.toFixed(1)}, ${c.y.toFixed(1)})`}
                   onMouseEnter={() => setHover(`c${i}`)}
                   onMouseLeave={() => setHover(null)}
@@ -824,125 +837,50 @@ export default function MapPage({ onOpenSite }) {
                   ) : null}
                 </g>
               )
-            })}
+            }) : null}
+            {showLandmarks ? <MapLandmarks projectX={lng => projX(lng) * viewport.k + viewport.x} projectY={lat => projY(lat) * viewport.k + viewport.y} sites={filteredSites} onOpen={openEntry} category={category} zoom={viewport.k}/> : null}
+            {viewport.k < 3 && hover && filteredSites.some(s => s.id === hover) ? (() => {
+              const s = filteredSites.find(s => s.id === hover)
+              return <text className="tip" x={clamp(s.x * viewport.k + viewport.x, 85, W - 85)} y={Math.max(18, s.y * viewport.k + viewport.y - 12)}>{s.name}</text>
+            })() : null}
           </svg>
+          {/* 修改：3D 只显示地球，不再附带模型列表；缩放后点位与地球一起变化。 */}
+          <div className="atlas-map-globe" ref={globeViewportRef} hidden={mode !== 'globe'}>
+            <div className="atlas-globe-sphere" style={{ transform: `scale(${globeZoom})` }}><HeritageGlobe large sites={filteredSites} target={globeTarget} zoom={globeZoom} onZoom={updateGlobeZoom} onOpenSite={openEntry}/></div>
+          </div>
 
           <div className="map-zoom">
-            <button onClick={() => zoomAt(1.6, [W / 2, H / 2])} aria-label="放大">＋</button>
-            <button onClick={() => zoomAt(1 / 1.6, [W / 2, H / 2])} aria-label="缩小">－</button>
-            <button className="rst" onClick={reset} aria-label="回到全球">
-              ⤾
+            <button disabled={mode === 'globe' ? globeZoom >= 3.5 : viewport.k >= K_MAX} onClick={() => mode === 'globe' ? updateGlobeZoom(globeZoom * 1.25) : zoomAt(1.6, [W / 2, H / 2])} aria-label="放大">＋</button>
+            <button disabled={mode === 'globe' ? globeZoom <= .7 : viewport.k <= K_MIN} onClick={() => mode === 'globe' ? updateGlobeZoom(globeZoom / 1.25) : zoomAt(1 / 1.6, [W / 2, H / 2])} aria-label="缩小">－</button>
+            <button className="rst" onClick={() => { reset(); updateGlobeZoom(1); setGlobeTarget({ lng: 20, lat: 20 }) }} aria-label="回到全球">
+              <svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" strokeWidth="1.4"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="3"/><path d="M12 1v4m0 14v4M1 12h4m14 0h4"/></svg>
             </button>
+            {mode === 'flat' ? <button className="layers" onClick={() => setShowLandmarks(v => !v)} aria-label="切换地标图层" aria-pressed={showLandmarks}><svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" strokeWidth="1.3"><path d="m12 3 10 7-10 7L2 10Zm-9 12 9 6 9-6"/></svg></button> : null}
           </div>
 
           <div className="map-scale">
             <span className="k">缩放</span>
-            <b>{view.k.toFixed(1)}×</b>
-            <span className="n">视野内 {inView.length} 处</span>
+            <b>{(mode === 'globe' ? globeZoom : viewport.k).toFixed(1)}×</b>
+            <span className="n">{mode === 'globe' ? `筛选 ${filteredSites.length} 处` : `视野内 ${inView.length} 处`}</span>
           </div>
 
           <div className="map-legend">
             <span className="t">图例</span>
             <span className="r">
-              <i className="hot" /> 含三维模型 · {N3D}
+              <i className="hot" /> 含三维模型 · {filteredSites.filter(s => s.has3d).length}
             </span>
             <span className="r">
-              <i /> 含影像收录 · {NIMG}
+              <i /> 遗产点位 · {filteredSites.length}
             </span>
             <span className="r">
-              <i className="cl" /> 聚合点 · 点击放大
+              <i className="cl" /> {mode === 'globe' ? '拖动旋转 · 滚轮缩放' : viewport.k < 3 ? '滚轮缩放 · 拖动探索' : '聚合点 · 点击放大'}
             </span>
+          </div>
+          <div className="atlas-map-credit">地形影像 · 项目内置全球底图</div>
+          {!filteredSites.length ? <div className="atlas-map-notice">{category === '自然' ? '当前名录尚未收录自然遗产' : '没有符合条件的遗产'}<button onClick={() => { setQ(''); setCategory('全部'); changeContinent('全部') }}>查看全部遗产 ↗</button></div> : null}
           </div>
         </div>
 
-        <div className="note-box" style={{ display: 'flex', gap: 10, marginBottom: 30 }}>
-          <IcInfo w={15} style={{ flexShrink: 0, marginTop: 2 }} />
-          <span>
-            <b>怎么读这张图</b>：合并成数字的圈一律是绿的，数字就是这一格里的遗产数量；
-            继续放大，到一格只剩一处，蓝点是有三维模型的 {N3D} 处（其中 {SITES.length} 处还进了编码矩阵），
-            灰点是有素材盘影像、但还没有三维模型的遗产，两样都没有的 {ALL.length - NIMG} 处画得更淡——
-            点开都是一份基础档案，不是空页。
-          </span>
-        </div>
-
-        <div className="map-result-head" ref={listTop}>
-          <span className="kicker">
-            {res?.kind === 'place'
-              ? `${res.place.t}${placeInfo?.near ? ' · 附近' : ''}`
-              : res?.kind === 'country'
-              ? res.country.name
-              : res?.kind === 'sites'
-              ? '搜索结果'
-              : res?.kind === 'none'
-              ? '没有匹配'
-              : '当前视野'}
-          </span>
-          <span className="c">
-            {res?.kind === 'none'
-              ? '换个说法试试'
-              : `${shown.length} 处${pages > 1 ? ` · 第 ${cur} / ${pages} 页` : ''}`}
-          </span>
-        </div>
-
-        <div className="map-list">
-          {rows.map((s, i) => (
-            <button key={s.id} className="map-item" onClick={() => openEntry(s)}>
-              <span className="n">{String((cur - 1) * PAGE + i + 1).padStart(2, '0')}</span>
-              <span className="nm">
-                {s.name}
-                <span className="co" style={{ marginLeft: 8 }}>
-                  {s.country}
-                </span>
-              </span>
-              <span className={`ar${s.has3d ? '' : ' plain'}`}>
-                {s.featured
-                  ? '三维 · 编码'
-                  : s.has3d
-                  ? '三维模型'
-                  : `${s.category}遗产 · ${s.year}`}
-              </span>
-            </button>
-          ))}
-          {!shown.length ? (
-            <div className="map-empty">
-              {res?.kind === 'none'
-                ? `没有找到「${res.query}」。试试国家名、大洲名（亚洲、欧洲）、大洋名（太平洋），或者少打几个字。`
-                : '这一片视野里没有落点。缩小一点，或者清掉搜索词。'}
-            </div>
-          ) : null}
-        </div>
-
-        {pages > 1 ? (
-          <nav className="map-pager" aria-label="分页">
-            <button className="pg-arrow" onClick={() => gotoPage(cur - 1)} disabled={cur === 1} aria-label="上一页">
-              ‹
-            </button>
-            {pageNums.map((p, i) =>
-              p === '…' ? (
-                <span className="pg-gap" key={`gap${i}`}>
-                  …
-                </span>
-              ) : (
-                <button
-                  key={p}
-                  className={`pg${p === cur ? ' on' : ''}`}
-                  onClick={() => gotoPage(p)}
-                  aria-current={p === cur ? 'page' : undefined}
-                >
-                  {p}
-                </button>
-              )
-            )}
-            <button
-              className="pg-arrow"
-              onClick={() => gotoPage(cur + 1)}
-              disabled={cur === pages}
-              aria-label="下一页"
-            >
-              ›
-            </button>
-          </nav>
-        ) : null}
       </div>
     </div>
   )

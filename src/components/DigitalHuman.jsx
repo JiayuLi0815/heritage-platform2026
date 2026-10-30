@@ -332,6 +332,85 @@ export default function DigitalHuman({ open, setOpen, onOpenSite, contextSite, p
   const logRef = useRef(null)
   const siteId = pageSite?.id
 
+  /* 悬浮球可拖到页面任意位置。用 pointer 事件自己算位置，
+     而不是 HTML5 拖拽——后者在触屏上不触发，还会拖出一张半透明幽灵图。
+     pos 为 null 时仍由 CSS 的 left/bottom 定位，第一次拖动后改由内联样式接管。 */
+  const [pos, setPos] = useState(null)
+  const [dragging, setDragging] = useState(false)
+  const fabRef = useRef(null)
+  const dragRef = useRef(null)
+  const movedRef = useRef(false)
+
+  const onFabDown = (e) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return
+    const el = fabRef.current
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    dragRef.current = {
+      id: e.pointerId,
+      ox: e.clientX - r.left,
+      oy: e.clientY - r.top,
+      x: e.clientX,
+      y: e.clientY,
+      w: r.width,
+      h: r.height,
+    }
+    movedRef.current = false
+    el.setPointerCapture?.(e.pointerId)
+  }
+
+  const onFabMove = (e) => {
+    const d = dragRef.current
+    if (!d || d.id !== e.pointerId) return
+    // 手指/鼠标抖动几个像素不算拖动，仍然当点击
+    if (!movedRef.current) {
+      if (Math.abs(e.clientX - d.x) + Math.abs(e.clientY - d.y) < 4) return
+      movedRef.current = true
+      setDragging(true)
+    }
+    const pad = 8
+    const maxLeft = Math.max(pad, window.innerWidth - d.w - pad)
+    const maxTop = Math.max(pad, window.innerHeight - d.h - pad)
+    const left = Math.min(Math.max(e.clientX - d.ox, pad), maxLeft)
+    const top = Math.min(Math.max(e.clientY - d.oy, pad), maxTop)
+    setPos({ left, bottom: window.innerHeight - top - d.h })
+  }
+
+  const onFabUp = (e) => {
+    if (!dragRef.current) return
+    dragRef.current = null
+    setDragging(false)
+    fabRef.current?.releasePointerCapture?.(e.pointerId)
+  }
+
+  const onFabClick = () => {
+    if (movedRef.current) {
+      movedRef.current = false
+      return
+    }
+    setOpen(true)
+  }
+
+  const hasPos = pos !== null
+  // 窗口变小后夹回可视区，避免球被甩到屏幕外找不回来
+  useEffect(() => {
+    if (!hasPos) return undefined
+    const onResize = () => {
+      const el = fabRef.current
+      if (!el) return
+      const w = el.offsetWidth
+      const h = el.offsetHeight
+      setPos((p) =>
+        p && {
+          left: Math.min(p.left, Math.max(8, window.innerWidth - w - 8)),
+          bottom: Math.min(p.bottom, Math.max(8, window.innerHeight - h - 8)),
+        },
+      )
+    }
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [hasPos])
+
   /* 进了某一处遗产页，左下角自己冒出一句话；12 秒后退回悬浮球，
      点它就开面板。换一处遗产（siteId 变）会重新说一遍。 */
   useEffect(() => {
@@ -399,23 +478,37 @@ export default function DigitalHuman({ open, setOpen, onOpenSite, contextSite, p
   }
 
   if (!open) {
+    // 每个页面都保留这颗球；拖动后位置由内联样式接管，未拖动时沿用 CSS 的左下角
+    const flipped = !!pos && pos.left > window.innerWidth * 0.55
     return (
-      <>
+      <div
+        className={`dh-dock${flipped ? ' flip' : ''}`}
+        style={pos ? { left: `${pos.left}px`, bottom: `${pos.bottom}px` } : undefined}
+      >
         {intro && pageSite ? (
           <button className="dh-bubble" onClick={() => setOpen(true)}>
             <span className="dh-bubble-t">{siteIntro(pageSite)}</span>
             <span className="dh-bubble-go">问弘文 →</span>
           </button>
         ) : null}
-        <button className="dh-fab" onClick={() => setOpen(true)}>
+        <button
+          ref={fabRef}
+          className={`dh-fab${dragging ? ' dragging' : ''}${flipped ? ' flip' : ''}`}
+          onClick={onFabClick}
+          onPointerDown={onFabDown}
+          onPointerMove={onFabMove}
+          onPointerUp={onFabUp}
+          onPointerCancel={onFabUp}
+          aria-label="有问题，问问弘文"
+        >
           <span className="dh-fab-orb">
-            <img src={AVATAR} alt="" />
+            <img src={AVATAR} alt="" draggable="false" />
           </span>
           <span className="dh-fab-t">
             <span className="a">有问题，问问弘文</span>
           </span>
         </button>
-      </>
+      </div>
     )
   }
 

@@ -3,8 +3,9 @@ import { SITES } from './data/sites.js'
 import Navbar from './components/Navbar.jsx'
 import { asset } from './asset.js'
 import DigitalHuman from './components/DigitalHuman.jsx'
-import Home from './pages/Home.jsx'
+import Home, { AtlasStyles } from './pages/Home.jsx'
 import MapPage from './pages/MapPage.jsx'
+import HeritageList from './pages/HeritageList.jsx'
 import AboutPage from './pages/AboutPage.jsx'
 import DataPage from './pages/DataPage.jsx'
 import VrPage from './pages/VrPage.jsx'
@@ -65,7 +66,8 @@ export default function App() {
 
   return (
     <>
-      {!site ? (
+      <AtlasStyles />
+      {!site && view !== 'map' && view !== 'globe' ? (
         <Navbar view={view} setView={goto} onSearch={() => setSearchOpen(true)} />
       ) : null}
 
@@ -76,7 +78,10 @@ export default function App() {
           openHuman={() => setHumanOpen(true)}
         />
       ) : null}
-      {view === 'map' && !site ? <MapPage onOpenSite={openSite} /> : null}
+      {/* 修改：接通首页「遗产列表」入口，浏览全部名录并复用现有详情页。 */}
+      {view === 'catalog' && !site ? <HeritageList onOpenSite={openSite} setView={goto} /> : null}
+      {/* 修改：两种地图都进入统一地图工作区，模式切换由地图页内部管理。 */}
+      {(view === 'map' || view === 'globe') && !site ? <MapPage onOpenSite={openSite} setView={goto} initialMode={view === 'globe' ? 'globe' : 'flat'} /> : null}
       {view === 'about' && !site ? <AboutPage /> : null}
       {view === 'data' && !site ? <DataPage /> : null}
       {view === 'vr' && !site ? <VrPage /> : null}
@@ -84,7 +89,7 @@ export default function App() {
         <HumanStandalone onOpenSite={openSite} openHuman={() => setHumanOpen(true)} />
       ) : null}
 
-      {view !== 'home' && !site ? <Footer setView={goto} /> : null}
+      {view !== 'home' && view !== 'map' && view !== 'globe' && !site ? <Footer setView={goto} /> : null}
 
       {site ? (
         site.catalog ? (

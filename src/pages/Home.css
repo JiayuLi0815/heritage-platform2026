@@ -1,0 +1,240 @@
+/* 修改：完整名录页沿用纸张与摄影卡片风格，筛选、分页均操作项目的真实名录。 */
+.heritage-list-page { min-height: 100svh; background: #f6f5f0; color: #30382c; padding: 135px 5% 60px; }
+.heritage-list-heading { position: relative; max-width: 1350px; margin: 0 auto; }
+.heritage-list-heading > .atlas-section-kicker { color: #9a845e; font: 10px Georgia, serif; letter-spacing: .15em; }
+.heritage-list-heading h1 { font: 500 42px/1.5 var(--font-serif); margin: 13px 0; }
+.heritage-list-heading p { font: 13px/1.9 var(--font-serif); color: #858575; max-width: 650px; }
+.heritage-list-heading > button { position: absolute; right: 0; bottom: 4px; }
+.heritage-list-filters { display: flex; align-items: end; gap: 20px; max-width: 1350px; margin: 35px auto 25px; }
+.heritage-list-filters > label { display: flex; flex-direction: column; gap: 8px; font-size: 11px; color: #868675; }
+.heritage-list-filters select, .heritage-list-filters input { background: transparent; color: #444d3a; border: 0; font: 12px var(--font); padding: 11px; min-height: 42px; }
+.heritage-list-filters select { border: 1px solid #9c957e55; border-radius: 4px; max-width: 260px; }
+.heritage-list-filters > .heritage-list-search { flex: 1; flex-direction: row; align-items: center; gap: 6px; border: 1px solid #9c957e55; padding-left: 14px; border-radius: 4px; }
+.heritage-list-search input { width: 100%; min-width: 0; }
+.heritage-list-result-head { display: flex; justify-content: space-between; max-width: 1350px; margin: 0 auto 20px; font: 11px var(--font-serif); color: #8a8779; scroll-margin-top: 100px; }
+.heritage-list-page > .atlas-collection-grid { max-width: 1350px; margin: auto; }
+.heritage-list-page .atlas-collection-card { min-width: 0; }
+.heritage-list-page .atlas-collection-card h2 { font: 500 20px/1.5 var(--font-serif); margin-top: 5px; }
+.heritage-list-page .atlas-collection-card > small { line-height: 1.7; }
+.heritage-list-photo { background: #dcded4; isolation: isolate; }
+.heritage-list-photo > img { position: relative; z-index: 1; }
+.heritage-list-photo > .heritage-list-photo-fallback { inset: 0; display: grid; place-items: center; font: 11px Georgia, serif; letter-spacing: .18em; color: #8e9584; }
+.heritage-list-photo > .atlas-card-arrow { z-index: 2; }
+.heritage-list-pager { display: flex; align-items: center; justify-content: center; gap: 25px; margin-top: 42px; font-size: 12px; }
+.heritage-list-pager button { border: 1px solid #a59a7e66; border-radius: 24px; padding: 10px 18px; color: #4a5540; }
+.heritage-list-pager button:disabled { opacity: .35; cursor: default; }
+.heritage-list-empty { text-align: center; padding: 70px 20px; color: #868575; font-size: 13px; }
+.heritage-list-empty button { margin-top: 20px; }
+@media (max-width: 700px) {
+  .heritage-list-page { padding: 108px 6% 40px; }
+  .heritage-list-heading h1 { font-size: 34px; }
+  .heritage-list-heading > button { position: static; margin-top: 15px; }
+  .heritage-list-filters { flex-wrap: wrap; gap: 12px; }
+  .heritage-list-filters > .heritage-list-search { flex: 1 1 100%; }
+  .heritage-list-filters > label:not(.heritage-list-search) { flex: 1; min-width: 0; }
+  .heritage-list-filters select { width: 100%; max-width: 100%; }
+  .heritage-list-page .atlas-collection-card h2 { font-size: 16px; }
+}
+
+/* 修改：首页改成一张完整的纸质图册；此修饰类只影响首页，不改变独立 3D 地球页。 */
+.atlas-home--editorial .atlas-hero {
+  height: max(940px, 100svh);
+  max-height: 1120px;
+  min-height: 940px;
+}
+.atlas-home--editorial .atlas-intro { width: 48%; padding-top: clamp(125px, 8.5vw, 165px); margin-left: 3.3%; }
+.atlas-home--editorial .atlas-intro h1 { font-size: clamp(40px, 3.65vw, 70px); line-height: 1.3; font-weight: 600; letter-spacing: -.045em; }
+.atlas-home--editorial .atlas-signature { width: 220px; height: 34px; margin: 11px 0 14px; stroke: #8b683e; }
+.atlas-home--editorial .atlas-motto { font-size: clamp(10px, .95vw, 17px); letter-spacing: .13em; }
+.atlas-home--editorial .atlas-description { margin-top: 17px; font: 400 clamp(11px, .98vw, 17px)/1.95 var(--font-serif); color: #828279; letter-spacing: .025em; }
+.atlas-home--editorial .atlas-start { margin-top: 24px; gap: 22px; }
+.atlas-home--editorial .atlas-start-circle { width: 70px; height: 70px; }
+.atlas-home--editorial .atlas-earth-composition { left: 33.5%; top: 17%; width: 35%; max-width: none; z-index: 3; }
+.atlas-home--editorial .atlas-earth-note { font-size: 8px; letter-spacing: .13em; }
+.atlas-home--editorial .atlas-orbit { inset: -1%; }
+.atlas-home--editorial .atlas-orbit span { font-size: 6px; }
+
+/* 修改：移除旧的多边形硬裁切，叠加径向与纵向透明蒙版，使照片四周渐隐到纸张中。
+   保持建筑中心清晰；只羽化外围，避免对整张遗产照片使用模糊滤镜。 */
+.atlas-home--editorial .atlas-collage {
+  clip-path: none;
+  mix-blend-mode: multiply;
+  filter: saturate(.6) sepia(.18) contrast(.95);
+  -webkit-mask-image: radial-gradient(ellipse 50% 50% at center, #000 40%, #000e 60%, #0006 80%, transparent 100%), linear-gradient(to bottom, transparent, #000 12%, #000 76%, transparent);
+  mask-image: radial-gradient(ellipse 50% 50% at center, #000 40%, #000e 60%, #0006 80%, transparent 100%), linear-gradient(to bottom, transparent, #000 12%, #000 76%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+}
+.atlas-home--editorial .atlas-collage img { transform: none; width: 100%; height: 100%; object-fit: cover; }
+.atlas-home--editorial .atlas-collage-rome { left: 45%; top: -10%; width: 26%; height: 48%; z-index: 2; transform: rotate(9deg); }
+.atlas-home--editorial .atlas-collage-rome img { object-position: 75% 45%; }
+.atlas-home--editorial .atlas-collage-machu { left: 58%; top: 13%; width: 23%; height: 48%; z-index: 1; }
+.atlas-home--editorial .atlas-collage-machu img { object-position: 65% center; }
+.atlas-home--editorial .atlas-collage-ruins { left: 16%; top: 50%; width: 34%; height: 31%; z-index: 4; transform: rotate(7deg); }
+.atlas-home--editorial .atlas-collage-ruins img { object-position: center 67%; }
+.atlas-coordinate { position: absolute; z-index: 4; color: #918c7e; font: 9px/1.8 Georgia, serif; letter-spacing: .18em; pointer-events: none; }
+.atlas-coordinate small { display: block; font-size: 7px; letter-spacing: .1em; }
+.atlas-coordinate-rome { left: 38%; top: 12%; }
+.atlas-coordinate-machu { left: 69%; top: 47%; }
+.atlas-coordinate-angkor { left: 19%; top: 57%; }
+
+/* 修改：推荐卡移到首屏右侧，圆形照片与纵向档案信息对应参考图的排版。 */
+.atlas-daily { position: absolute; top: 108px; right: 3%; width: 18%; z-index: 5; padding-left: 21px; border-left: 1px solid #8b82622b; }
+.atlas-daily::before, .atlas-daily::after { content: ''; position: absolute; left: -3px; width: 5px; height: 5px; border: 1px solid #b1afa4; border-radius: 50%; background: #f6f5f0; }
+.atlas-daily::before { top: 65px; }
+.atlas-daily::after { bottom: 22px; }
+.atlas-daily-heading { display: flex; align-items: end; justify-content: space-between; gap: 6px; margin-bottom: 12px; }
+.atlas-daily-heading h2 { font: 600 22px/1.5 var(--font-serif); letter-spacing: .05em; }
+.atlas-daily-heading > div > span { font: 8px/1.5 Georgia, serif; color: #9a7f58; letter-spacing: .14em; }
+.atlas-daily-heading time { font: 9px Georgia, serif; color: #8b887d; white-space: nowrap; padding-bottom: 2px; }
+.atlas-daily-photo { display: block; width: 70%; max-width: 180px; aspect-ratio: 1; margin: 0 auto 10px; padding: 0; border-radius: 50%; overflow: hidden; }
+.atlas-daily-photo img { width: 100%; height: 100%; object-fit: cover; transition: transform .5s; filter: saturate(.8); }
+.atlas-daily-photo:hover img { transform: scale(1.05); }
+.atlas-daily h3 { font: 600 clamp(20px, 1.55vw, 29px)/1.45 var(--font-serif); }
+.atlas-daily-en { font: 11px/1.7 Georgia, serif; text-transform: capitalize; letter-spacing: .035em; color: #555a4d; }
+.atlas-daily-meta { display: flex; align-items: end; justify-content: space-between; margin: 7px 0 12px; gap: 10px; font: 12px/1.6 var(--font-serif); }
+.atlas-daily-meta > span:first-child { display: flex; align-items: center; gap: 5px; }
+.atlas-daily-meta > span:last-child { border-left: 1px solid #8b826244; padding-left: 15px; font: 16px Georgia, serif; }
+.atlas-daily-meta small { display: block; font: 10px/1.6 var(--font-serif); color: #8a8a80; }
+.atlas-daily-tags { display: flex; flex-wrap: wrap; gap: 7px; }
+.atlas-daily-tags span { padding: 2px 10px; border: 1px solid #ac91644d; border-radius: 20px; font: 10px/1.5 var(--font-serif); color: #a08861; }
+.atlas-daily-description { font: 11px/1.75 var(--font-serif); white-space: pre-line; color: #89897d; margin-top: 9px; }
+.atlas-daily-open { display: flex; align-items: center; gap: 16px; padding: 0; margin: 9px 0 10px; font: 600 15px var(--font-serif); }
+.atlas-daily-open > span { display: grid; place-items: center; width: 39px; height: 39px; border-radius: 50%; background: #303b2d; color: #f9f5e9; transition: transform .25s; }
+.atlas-daily-open:hover > span { transform: translateX(4px); }
+.atlas-daily-stats { padding-top: 9px; border-top: 1px solid #8b826233; }
+.atlas-daily-stats > span { font: 600 10px var(--font-serif); }
+.atlas-daily-stats > span > small { font: 6px Georgia, serif; letter-spacing: .06em; margin-left: 5px; color: #919084; }
+.atlas-daily-stats > div { display: grid; grid-template-columns: 1fr 1fr; margin-top: 10px; }
+.atlas-daily-stats p { margin: 0; }
+.atlas-daily-stats p + p { border-left: 1px solid #8b826244; padding-left: 18px; }
+.atlas-daily-stats strong { display: block; font: 29px/1.1 Georgia, serif; font-weight: 400; }
+.atlas-daily-stats p > span { font: 10px/1.8 var(--font-serif); color: #8a8a80; }
+
+/* 修改：首屏左下角的三张入口卡；地图卡额外保留平面地图和 3D 地球的独立按钮。 */
+.atlas-home-methods { position: absolute; z-index: 6; left: 3.3%; bottom: 28px; width: 62%; padding-left: 12px; border-left: 1px solid #9f8e673d; }
+.atlas-home-methods > .atlas-section-kicker { color: #896e45; font-size: 15px; font-weight: 600; }
+.atlas-home-methods > h2 { font: 500 clamp(23px, 1.9vw, 36px)/1.5 var(--font-serif); margin: 6px 0 16px; letter-spacing: -.035em; }
+.atlas-home--editorial .atlas-entry-grid { grid-template-columns: 1.4fr 1fr .9fr; gap: 9px; }
+.atlas-home--editorial .atlas-entry { min-height: 162px; padding: 16px 17px; border-radius: 4px; border: 1px solid #ffffff4d; }
+.atlas-home--editorial .atlas-entry::after { background: linear-gradient(90deg, #101b18d9, #101b183d); }
+.atlas-home--editorial .atlas-entry-map > img { filter: saturate(.55) brightness(.75); }
+.atlas-home--editorial .atlas-entry-catalog > img { object-position: 75% center; }
+.atlas-home--editorial .atlas-entry-num { font-size: 12px; margin-bottom: 15px; }
+.atlas-entry-english { position: absolute; top: 17px; right: 13px; max-width: 95px; text-align: right; font: 6px/1.5 Georgia, serif; letter-spacing: .16em; opacity: .7; }
+.atlas-home--editorial .atlas-entry-copy h3 { font: 500 23px/1.4 var(--font-serif); color: #f7f3e7; }
+.atlas-home--editorial .atlas-entry-copy p { font: 11px/1.7 var(--font-serif); color: #e0ded2; margin: 4px 0 11px; }
+.atlas-entry-actions { display: flex; align-items: center; gap: 6px; }
+.atlas-entry-actions > button { font: 10px/1.5 var(--font-serif); color: #e6e1d3; border: 1px solid #dfd6b69c; border-radius: 20px; padding: 4px 10px; transition: background .2s; }
+.atlas-entry-actions > button:nth-child(2) { background: #f3e9d0; color: #364132; }
+.atlas-entry-actions > button:hover { background: #e7d5aa; color: #273321; }
+.atlas-entry-actions > button.atlas-entry-go { display: grid; place-items: center; width: 29px; height: 29px; padding: 0; border-color: #dfd6b6b0; }
+/* 修改：扩大卡片主入口的点击范围；地图切换按钮单独置顶，仍可分别选择平面和 3D。 */
+.atlas-entry-go::after { content: ''; position: absolute; inset: 0; }
+.atlas-entry-actions > button:not(.atlas-entry-go) { position: relative; z-index: 2; }
+
+/* 修改：右下角接入「弘文」现有对话功能，并用项目原有数字人形象替代示例人物。 */
+.atlas-home-human { position: absolute; z-index: 6; right: 2%; bottom: 28px; width: 30%; padding: 14px 17px 0; background: #ffffff70; border: 1px solid #ffffff80; border-radius: 7px; box-shadow: 0 4px 25px #584b2e05; }
+.atlas-home-human h2 { font: 600 18px/1.5 var(--font-serif); }
+.atlas-home-human h2 > span { font: 9px Georgia, serif; letter-spacing: .15em; color: #9b9687; margin-left: 10px; }
+.atlas-home-human-body { display: grid; grid-template-columns: 27% 1fr; gap: 12px; align-items: end; }
+.atlas-home-human-body > img { width: 100%; height: 151px; object-fit: cover; object-position: center top; mix-blend-mode: multiply; mask-image: linear-gradient(#000 85%, transparent); }
+.atlas-home-human-body > div { min-width: 0; padding-bottom: 14px; }
+.atlas-home-human-body p { font: 11px/1.8 var(--font-serif); color: #77796e; margin-top: 8px; }
+.atlas-human-prompts { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 11px; }
+.atlas-human-prompts > span { font: 8px/1.5 var(--font-serif); color: #979284; padding: 3px 7px; border: 1px solid #b4a98e40; border-radius: 4px; }
+.atlas-home-human-body button { display: flex; align-items: center; justify-content: space-between; gap: 14px; width: 100%; margin-top: 14px; padding: 9px 14px; font: 11px/1.5 var(--font-serif); color: #f1efdf; background: #303b2d; border-radius: 24px; }
+.atlas-home-human-body button:hover { background: #4d5a40; }
+.atlas-home--editorial .atlas-guide { display: none; }
+
+@media (min-width: 1700px) {
+  /* 修改：超宽屏为右栏预留纵向间距，长遗产名称也不会压住弘文入口。 */
+  .atlas-home--editorial .atlas-hero { height: max(980px, 100svh); min-height: 980px; }
+  .atlas-home--editorial .atlas-entry { min-height: 195px; padding: 20px; }
+  .atlas-home--editorial .atlas-entry-num { margin-bottom: 24px; }
+  .atlas-home--editorial .atlas-entry-copy h3 { font-size: 27px; }
+  .atlas-daily { top: 115px; }
+  .atlas-daily-photo { margin-bottom: 10px; }
+  .atlas-daily-description { font-size: 12px; }
+  .atlas-daily-stats strong { font-size: 34px; }
+  .atlas-home-human { padding: 17px 21px 0; }
+  .atlas-home-human-body > img { height: 145px; }
+  .atlas-home-human-body p { font-size: 12px; }
+}
+@media (max-width: 1200px) and (min-width: 901px) {
+  .atlas-home--editorial .atlas-hero { min-height: 940px; }
+  .atlas-home--editorial .atlas-intro { padding-top: 125px; }
+  .atlas-home--editorial .atlas-intro h1 { font-size: 40px; }
+  .atlas-home--editorial .atlas-earth-composition { top: 25%; left: 34%; width: 39%; }
+  .atlas-daily { width: 21%; right: 2%; padding-left: 14px; }
+  .atlas-daily-heading h2 { font-size: 20px; }
+  .atlas-daily-heading > div > span { font-size: 6px; }
+  .atlas-daily h3 { font-size: 21px; }
+  .atlas-home--editorial .atlas-entry { padding: 14px 11px; }
+  .atlas-home--editorial .atlas-entry-copy h3 { font-size: 21px; }
+  .atlas-home--editorial .atlas-entry-copy p { font-size: 9px; }
+  .atlas-entry-actions { gap: 4px; }
+  .atlas-entry-actions > button { font-size: 9px; padding: 4px 6px; }
+  .atlas-home-human { width: 31%; padding: 12px 12px 0; }
+  .atlas-home-human-body { grid-template-columns: 25% 1fr; gap: 9px; }
+  .atlas-home-human-body p { font-size: 10px; }
+}
+/* 修改：平板和手机改为自然文档流，避免绝对定位的推荐卡、数字人与入口彼此遮挡。 */
+@media (max-width: 900px) {
+  .atlas-home--editorial .atlas-hero { height: auto; min-height: 0; max-height: none; display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, .7fr); gap: 28px; padding: 110px 5% 35px; }
+  .atlas-home--editorial .atlas-intro { grid-column: 1 / -1; padding: 0; width: 100%; margin: 0; min-height: 550px; }
+  .atlas-home--editorial .atlas-intro h1 { font-size: clamp(34px, 5.3vw, 48px); }
+  .atlas-home--editorial .atlas-description { max-width: 420px; font-size: 12px; }
+  .atlas-home--editorial .atlas-earth-composition { left: 43%; top: 300px; width: 51%; }
+  .atlas-home--editorial .atlas-collage-rome { left: 56%; top: 0; width: 40%; height: 330px; opacity: .55; }
+  .atlas-home--editorial .atlas-collage-machu { left: 63%; top: 260px; width: 37%; height: 390px; }
+  .atlas-home--editorial .atlas-collage-ruins { left: 22%; top: 460px; width: 50%; height: 240px; }
+  .atlas-coordinate { display: none; }
+  .atlas-home-methods { position: relative; left: auto; bottom: auto; grid-column: 1 / -1; grid-row: 2; width: 100%; }
+  .atlas-home-methods > h2 { font-size: 27px; }
+  .atlas-home--editorial .atlas-entry { min-height: 175px; }
+  .atlas-daily { position: relative; top: auto; right: auto; grid-column: 1; grid-row: 3; width: 100%; padding-left: 16px; align-self: start; }
+  .atlas-daily-photo { width: 65%; max-width: 220px; }
+  .atlas-daily-heading h2 { font-size: 23px; }
+  .atlas-daily h3 { font-size: 26px; }
+  .atlas-home-human { position: relative; right: auto; bottom: auto; grid-column: 2; grid-row: 3; width: 100%; align-self: center; padding: 20px 17px 0; }
+  .atlas-home-human h2 > span { display: block; margin: 6px 0 0; }
+  .atlas-home-human-body { display: flex; flex-direction: column; gap: 0; align-items: center; }
+  .atlas-home-human-body > img { width: 140px; height: 190px; }
+  .atlas-home-human-body p { font-size: 12px; }
+  .atlas-home-human-body button { font-size: 12px; }
+}
+@media (max-width: 600px) {
+  .atlas-home--editorial .atlas-hero { display: flex; flex-direction: column; gap: 30px; padding: 108px 6% 30px; }
+  .atlas-home--editorial .atlas-intro { min-height: 620px; }
+  .atlas-home--editorial .atlas-intro h1 { font-size: clamp(29px, 7.5vw, 44px); letter-spacing: -.045em; }
+  .atlas-home--editorial .atlas-signature { width: 150px; margin: 7px 0 10px; }
+  .atlas-home--editorial .atlas-motto { font-size: 8px; letter-spacing: .13em; }
+  .atlas-home--editorial .atlas-description { font-size: 11px; margin-top: 17px; }
+  .atlas-home--editorial .atlas-description br { display: none; }
+  .atlas-home--editorial .atlas-start { margin-top: 20px; gap: 15px; }
+  .atlas-home--editorial .atlas-start-circle { width: 55px; height: 55px; }
+  .atlas-home--editorial .atlas-earth-composition { left: 17%; top: 405px; width: 72%; }
+  .atlas-home--editorial .atlas-collage-rome { left: 60%; top: 40px; width: 40%; height: 280px; opacity: .18; }
+  .atlas-home--editorial .atlas-collage-machu { left: 61%; top: 405px; width: 42%; height: 280px; opacity: .65; }
+  .atlas-home--editorial .atlas-collage-ruins { left: -2%; top: 560px; width: 60%; height: 190px; }
+  .atlas-home-methods { order: 1; padding-left: 9px; }
+  .atlas-home-methods > .atlas-section-kicker { font-size: 13px; }
+  .atlas-home-methods > h2 { font-size: 23px; margin-bottom: 14px; }
+  .atlas-home--editorial .atlas-entry-grid { grid-template-columns: 1fr; gap: 10px; }
+  .atlas-home--editorial .atlas-entry { min-height: 144px; padding: 16px 18px; }
+  .atlas-home--editorial .atlas-entry-num { margin-bottom: 10px; }
+  .atlas-home--editorial .atlas-entry-copy h3 { font-size: 23px; }
+  .atlas-home--editorial .atlas-entry-copy p { font-size: 11px; margin: 3px 0 9px; }
+  .atlas-entry-english { font-size: 7px; }
+  .atlas-daily { order: 2; }
+  .atlas-daily-photo { width: 56%; max-width: 240px; }
+  .atlas-daily-description { font-size: 13px; }
+  .atlas-daily-stats > span > small { font-size: 7px; }
+  .atlas-home-human { order: 3; width: 100%; padding: 16px 15px 0; }
+  .atlas-home-human h2 > span { display: inline; margin-left: 7px; }
+  .atlas-home-human-body { display: grid; grid-template-columns: 26% 1fr; gap: 12px; }
+  .atlas-home-human-body > img { width: 100%; height: 170px; }
+  .atlas-home-human-body p { font-size: 11px; }
+  .atlas-home-human-body button { padding: 9px 11px; font-size: 11px; }
+}
