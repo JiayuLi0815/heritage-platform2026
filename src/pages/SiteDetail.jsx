@@ -54,7 +54,7 @@ export default function SiteDetail({ site, onClose, onOpenSite, openHuman, setHu
 
   return (
     <div className="detail">
-      {/* 三维 / 影像舞台 */}
+      {/* 三维 / 图像舞台 */}
       <div className="stage">
         {showModel ? (
           local ? (
@@ -114,7 +114,7 @@ export default function SiteDetail({ site, onClose, onOpenSite, openHuman, setHu
                 role="tab"
                 aria-selected={media === 'photos'}
               >
-                <IcImage w={14} /> 影像 {photos}
+                <IcImage w={14} /> 图像 {photos}
               </button>
             </div>
           ) : null}
@@ -237,10 +237,10 @@ export default function SiteDetail({ site, onClose, onOpenSite, openHuman, setHu
                     <IcImage />
                   </span>
                   <span className="asset-b">
-                    <span className="asset-t">现场影像 {photos} 张</span>
+                    <span className="asset-t">现场图像 {photos} 张</span>
                     <span className="asset-m">
                       <span>webp · 长边 1400px</span>
-                      <span className="asset-lic">课题素材盘搜集</span>
+                      <span className="asset-lic">TJ数智实验室采集</span>
                     </span>
                   </span>
                 </div>

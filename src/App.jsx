@@ -22,6 +22,7 @@ const CATALOG = RAW.map((s) => ({ ...s, catalog: true, featured: FEATURED_BY_WHC
 export default function App() {
   const [view, setView] = useState('home')
   const [site, setSite] = useState(null)
+  const [mapTarget, setMapTarget] = useState(null)
   const [humanOpen, setHumanOpen] = useState(false)
   const [humanCtx, setHumanCtx] = useState(null)
   const [searchOpen, setSearchOpen] = useState(false)
@@ -43,10 +44,17 @@ export default function App() {
   }, [])
 
   const goto = useCallback((v) => {
+    setMapTarget(null)
     setView(v)
     closeSite()
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [closeSite])
+
+  // 修改：详情页将遗址传给地图，普通导航时清除上一次定位目标。
+  const locateSite = useCallback((target) => {
+    goto('map')
+    setMapTarget(target)
+  }, [goto])
 
   // Esc 逐层关闭：搜索 → 数字人 → 详情
   useEffect(() => {
@@ -81,7 +89,7 @@ export default function App() {
       {/* 修改：接通首页「遗产列表」入口，浏览全部名录并复用现有详情页。 */}
       {view === 'catalog' && !site ? <HeritageList onOpenSite={openSite} setView={goto} /> : null}
       {/* 修改：两种地图都进入统一地图工作区，模式切换由地图页内部管理。 */}
-      {(view === 'map' || view === 'globe') && !site ? <MapPage onOpenSite={openSite} setView={goto} initialMode={view === 'globe' ? 'globe' : 'flat'} /> : null}
+      {(view === 'map' || view === 'globe') && !site ? <MapPage onOpenSite={openSite} setView={goto} targetSite={mapTarget} initialMode={view === 'globe' ? 'globe' : 'flat'} /> : null}
       {view === 'about' && !site ? <AboutPage /> : null}
       {view === 'data' && !site ? <DataPage /> : null}
       {view === 'vr' && !site ? <VrPage /> : null}
@@ -93,7 +101,7 @@ export default function App() {
 
       {site ? (
         site.catalog ? (
-          <CatalogDetail site={site} onClose={closeSite} onOpenSite={openSite} />
+          <CatalogDetail site={site} onClose={closeSite} onOpenSite={openSite} onLocateSite={locateSite} />
         ) : (
           <SiteDetail
             site={site}

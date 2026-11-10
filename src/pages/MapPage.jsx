@@ -256,7 +256,7 @@ function findCountry(qn) {
   return best ? { c: best.c, exact: false } : null
 }
 
-export default function MapPage({ onOpenSite, setView = () => {}, initialMode = 'flat' }) {
+export default function MapPage({ onOpenSite, setView = () => {}, initialMode = 'flat', targetSite = null }) {
   const [geo, setGeo] = useState(null)
   const [failed, setFailed] = useState(false)
   const [hover, setHover] = useState(null)
@@ -671,6 +671,16 @@ export default function MapPage({ onOpenSite, setView = () => {}, initialMode = 
     else if (res.kind === 'place') focusView(viewForPlace(res.place), 1.15)
   }
   const openEntry = (s) => onOpenSite(s.featured ? s.featured : { ...s, catalog: true })
+
+  // 修改：从详情页进入时筛选该遗址并放大定位，同时准备好 3D 地球的相同目标。
+  useEffect(() => {
+    if (!targetSite) return
+    const entry = ALL.find(s => String(s.id) === String(targetSite.id))
+    if (!entry) return
+    setQ(entry.name)
+    setContinent('全部'); setCountry('全部'); setCategory('全部')
+    focusView(viewForSite(entry, 1), 2)
+  }, [targetSite]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className={`map-page heritage-atlas atlas-map-workspace mode-${mode}`}>

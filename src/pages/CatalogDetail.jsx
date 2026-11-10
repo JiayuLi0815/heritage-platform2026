@@ -6,7 +6,7 @@ import { galleryOf } from '../data/gallery.js'
 import ModelStage from '../components/ModelStage.jsx'
 import ImageGallery from '../components/ImageGallery.jsx'
 import { asset } from '../asset.js'
-import { IcArrowLeft, IcCube, IcExternal, IcGlobe, IcImage, IcInfo, IcMap, IcPin } from '../components/icons.jsx'
+import { IcArrowLeft, IcCube, IcExternal, IcGlobe, IcImage, IcMap, IcPin } from '../components/icons.jsx'
 
 /* ============================================================
    名录档案页
@@ -22,7 +22,7 @@ const ALL_BY_COUNTRY = RAW.reduce((m, s) => {
   return m
 }, {})
 
-export default function CatalogDetail({ site, onClose, onOpenSite }) {
+export default function CatalogDetail({ site, onClose, onOpenSite, onLocateSite }) {
   const [imgOk, setImgOk] = useState(true)
   const local = localModels(site.id)
   const photos = galleryOf(site.id)
@@ -97,7 +97,7 @@ export default function CatalogDetail({ site, onClose, onOpenSite }) {
                 role="tab"
                 aria-selected={media === 'photos'}
               >
-                <IcImage w={14} /> 影像 {photos}
+                <IcImage w={14} /> 图像 {photos}
               </button>
             </div>
             ) : null}
@@ -127,21 +127,6 @@ export default function CatalogDetail({ site, onClose, onOpenSite }) {
         </div>
 
         <div className="cat-body">
-          {local ? (
-            <div className="cat-note">
-              <IcInfo w={15} style={{ flexShrink: 0, marginTop: 2 }} />
-              <span>
-                <b>这一处已建模，但尚未进入编码矩阵。</b>
-                {local.length > 1
-                  ? `左侧是可切换的 ${local.length} 个构件，`
-                  : '左侧是可以直接转动的三维模型，'}
-                来自课题素材盘的三维扫描{photos ? `；也能切到 ${photos} 张现场影像` : ''}。
-                它还没有像 20 处精选那样做过交互形式与数字化评估评分，所以这里不打分。
-                模型先上，评分后补——不让「没打分」把已经有的资产挡在门外。
-              </span>
-            </div>
-          ) : null}
-
           <dl className="cat-facts">
             <div>
               <dt>官方编号</dt>
@@ -191,11 +176,11 @@ export default function CatalogDetail({ site, onClose, onOpenSite }) {
             ) : null}
             {photos ? (
               <div>
-                <dt>影像</dt>
+                <dt>图像</dt>
                 <dd>
                   {photos} 张
                   <span style={{ display: 'block', fontSize: 11.5, color: 'var(--muted)', fontWeight: 400 }}>
-                    来源：课题素材盘搜集
+                    来源：TJ数智实验室采集
                   </span>
                 </dd>
               </div>
@@ -208,14 +193,14 @@ export default function CatalogDetail({ site, onClose, onOpenSite }) {
                 在 UNESCO 名录中查看 <IcExternal w={15} />
               </a>
             ) : null}
-            <a
+            {/* 修改：使用站内地图定位，避免外部地图访问失败。 */}
+            <button
+              type="button"
               className="btn btn-line"
-              href={`https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=14/${lat}/${lng}`}
-              target="_blank"
-              rel="noreferrer"
+              onClick={() => onLocateSite(site)}
             >
-              <IcMap w={15} /> 在开放地图上定位
-            </a>
+              <IcMap w={15} /> 在地图上定位
+            </button>
           </div>
 
           {related.length ? (

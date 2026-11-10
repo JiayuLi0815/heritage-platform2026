@@ -4,7 +4,7 @@ import { galleryFilesOf } from '../data/gallery.js'
 import { IcChevronL, IcChevronR } from './icons.jsx'
 
 /* ============================================================
-   影像画廊
+   图像画廊
    ------------------------------------------------------------
    素材盘里每处遗产有 1–8 张原图（多为 5K 以上），压成 1400px 的 webp 放在
    public/img/gallery/<id>/。这里给的是「翻看」而不是「轮播」：有缩略图、
@@ -79,7 +79,7 @@ export default function ImageGallery({ site, id = site.id }) {
           key={`${id}-${k}`}
           className={`gal-img${on ? ' on' : ''}`}
           src={srcAt(k)}
-          alt={`${site.name} 影像 ${k + 1}`}
+          alt={`${site.name} 图像 ${k + 1}`}
           draggable="false"
         />
       </div>
@@ -97,7 +97,7 @@ export default function ImageGallery({ site, id = site.id }) {
 
       <div className="gal-foot">
         {n > 1 ? (
-          <div className="gal-thumbs" ref={thumbs} role="tablist" aria-label="影像">
+          <div className="gal-thumbs" ref={thumbs} role="tablist" aria-label="图像">
             {Array.from({ length: n }, (_, j) => (
               <button
                 key={j}
