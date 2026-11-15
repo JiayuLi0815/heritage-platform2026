@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1045 &1
+EditorBuildSettings:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Scenes:
+  - enabled: 1
+    path: Assets/Huaxia/Scenes/Archive.unity
+    guid: 4e63a1e4b275d4f45a4f0a248278cf73
+  - enabled: 1
+    path: Assets/Huaxia/Scenes/Liangzhu.unity
+    guid: c24c63f99d0c0419680ed91e30f7f4be
+  - enabled: 1
+    path: Assets/Huaxia/Scenes/Qinling.unity
+    guid: 45ec749597820496588b7d844e062b41
+  - enabled: 1
+    path: Assets/Huaxia/Scenes/Quanzhou.unity
+    guid: 015590c8b6ea34b0485de0c59e44845f
+  - enabled: 1
+    path: Assets/Huaxia/Scenes/Epilogue.unity
+    guid: 3259d5109729c4b0c847bbc382721254
+  m_configObjects:
+    com.unity.xr.management.loader_settings: {fileID: 11400000, guid: 46b6e3eb8cf73400dbcd66d281fc5394, type: 2}
+    com.unity.xr.openxr.settings4: {fileID: 11400000, guid: aebc2064acacc4c0f9678ff4c355582b, type: 2}

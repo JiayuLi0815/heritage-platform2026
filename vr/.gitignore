@@ -1,0 +1,76 @@
+# ---------- Unity 生成物（可重建，不要进仓库） ----------
+/Library/
+/Temp/
+/Obj/
+/obj/
+/Logs/
+/Build/
+/Builds/
+/UserSettings/
+/MemoryCaptures/
+/Recordings/
+
+# Unity 自动生成的工程文件
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+.vs/
+.idea/
+.vscode/settings.json
+
+# 构建产物 / 崩溃日志
+sysinfo.txt
+*.apk
+*.aab
+*.unitypackage
+*.app
+crashlytics-build.properties
+
+# ---------- 操作系统 ----------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ---------- 临时 / 备份 ----------
+*.bak
+*.orig
+*.rej
+/Backup*/
+/backup*/
+*.log
+!/Packages/*.log
+
+# ---------- 本地敏感文件 ----------
+.env
+.env.*
+*.pem
+*.key
+
+# 崩溃转储
+mono_crash.*.json
+
+# 预览图 2× 原图（体积大，本地看即可，不进仓库）
+/Previews/hires/
+
+# ---------- 场景文件（程序化生成，不进仓库）----------
+# 四个场景全部由 Editor 脚本从空场景重建（各 *Scene.cs 里的 NewScene + SaveScene），
+# 而且生成出来的网格会整块序列化进 .unity：秦陵那份已经 173 MB，超过 GitHub
+# 单文件 100 MB 的硬上限，推不上去。clone 下来后在菜单里跑一次
+# Huaxia/HuaxiaBuilder/BuildAll 即可重建，省下的几百 MB 不值得用 LFS 换。
+/Assets/Huaxia/Scenes/
+

@@ -20,6 +20,7 @@ heritage-platform2026/
 ├─ public/               运行时静态素材（不入 git 的大件除外）
 ├─ scripts/              素材管线（把素材盘离线转成 public/ + src/data 清单）
 ├─ proxy/                DeepSeek API Key 代理服务
+├─ vr/                   《华夏文明探源·河山册》VR 工程的 Unity 工程（PICO 4）
 ├─ work/                 管线中间产物（盘点、缺图清单、校验报告）
 └─ dist/ dist-media/     构建产物 / 媒体副产物（均被 .gitignore 忽略）
 ## 页面结构
