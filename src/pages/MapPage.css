@@ -187,8 +187,10 @@
 .atlas-map-filters select:focus-visible { outline: 2px solid #e1c18d; outline-offset: 3px; }
 .atlas-map-filter-status { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin: 9px 6px 0; font-size: 10px; line-height: 1.6; color: #b2c3ce; text-shadow: 0 1px 8px #000; }
 .atlas-map-filter-status > button { color: #e6c78d; font-size: 10px; white-space: nowrap; }
-.atlas-map-home-link { display: block; width: 100%; margin-top: 12px; padding: 10px 0; color: #a9b9c5; font-size: 11px; border-top: 1px solid #c8bb9a26; text-align: left; flex-shrink: 0; }
-.atlas-map-home-link:hover { color: #f3d197; }
+/* 修改：返回首页移到侧栏左上角，做成胶囊按钮，进入地图后一眼可见。 */
+.atlas-map-home-link { display: inline-flex; align-items: center; align-self: flex-start; flex-shrink: 0; margin: 0 0 14px; padding: 6px 13px; color: #c8d3dc; font: 11px/1.4 var(--font); letter-spacing: .02em; background: #0a1c2b8c; border: 1px solid #c8bb9a3d; border-radius: 999px; transition: color .2s, border-color .2s, background .2s; }
+.atlas-map-home-link:hover { color: #f3d197; border-color: #d2af70a3; background: #173247a6; }
+.atlas-map-home-link:focus-visible { outline: 2px solid #e1c18d; outline-offset: 2px; }
 .atlas-map-workspace .map-zoom { top: 178px; right: 24px; }
 .atlas-map-workspace .map-zoom button:disabled { color: #668091; opacity: .5; cursor: default; }
 .atlas-map-workspace .map-scale { bottom: 24px; }
@@ -222,7 +224,7 @@
   .atlas-map-workspace .atlas-map-stats > div { display: flex; flex-direction: column; gap: 2px; margin: 0; }
   .atlas-map-workspace .atlas-map-stats strong { font-size: 18px; line-height: 1; }
   .atlas-map-workspace .atlas-map-stats span { font: 7px/1.5 var(--font); letter-spacing: 0; white-space: nowrap; }
-  .atlas-map-workspace .atlas-map-home-link { position: absolute; top: 14px; right: 14px; margin: 0; width: auto; border: 0; padding: 8px 0; font-size: 10px; }
+  .atlas-map-workspace .atlas-map-home-link { position: absolute; top: 12px; right: 14px; margin: 0; padding: 5px 10px; font-size: 10px; }
   .atlas-map-workspace .atlas-map-canvas { width: 100%; padding: 0; min-height: 0; }
   .atlas-map-workspace .atlas-map-topbar { top: 13px; left: 14px; right: 14px; flex-direction: column; gap: 12px; }
   .atlas-map-mode { align-self: flex-start; padding: 3px; }

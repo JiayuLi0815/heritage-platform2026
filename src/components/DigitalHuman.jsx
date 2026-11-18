@@ -444,7 +444,7 @@ export default function DigitalHuman({ open, setOpen, onOpenSite, contextSite, p
     setMsgs((m) => [...m, { role: 'me', text: q }])
     setBusy(true)
 
-    /* 有 Key 就走 DeepSeek，没有或请求失败就回落到本地知识检索层，
+    /* 配了代理就走 DeepSeek，没配或请求失败就回落到本地知识检索层，
        演示时不会因为断网或额度用完而哑掉。 */
     const history = msgs
       .filter((m) => m.role === 'me' || m.role === 'ai')
@@ -462,7 +462,11 @@ export default function DigitalHuman({ open, setOpen, onOpenSite, contextSite, p
         const note =
           err?.message === 'budget'
             ? '（今天的模型额度用完了，明天自动重置；先用本地知识库答你。）'
-            : '（大模型这会儿没连上，先用本地知识库答你。）'
+            : err?.message === 'auth'
+              ? '（DeepSeek 密钥无效或已过期，先用本地知识库答你；在服务器 proxy/.env 里换一个有效 Key 即可。）'
+              : err?.message === 'no-proxy'
+                ? '（还没配 DeepSeek 代理地址，先用本地知识库答你。）'
+                : '（大模型这会儿没连上，先用本地知识库答你。）'
         setMsgs((m) => [...m, { role: 'ai', text: `${local.text}\n\n${note}`, sites: local.sites }])
         setBusy(false)
         return

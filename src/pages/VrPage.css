@@ -1,0 +1,77 @@
+/* ============================================================
+   《华夏文明探源·河山册》沉浸体验页
+   ------------------------------------------------------------
+   只服务这一页：介绍 → 预览图 → 收尾。
+   类名统一 vrp- 前缀，避免和 styles.css 里早前版本遗留的 .vr-* 冲突。
+   ============================================================ */
+
+.wrap.vrp { padding-top: calc(var(--nav-h) + 72px); padding-bottom: 96px; }
+
+.vrp h1,
+.vrp h2,
+.vrp h3 { font-family: var(--font-serif); color: var(--ink); }
+
+/* ---------- Hero ---------- */
+.vrp-hero { display: grid; grid-template-columns: 1fr 460px; gap: 56px; align-items: center; }
+.vrp-hero-copy h1 { font-size: 40px; line-height: 1.24; margin: 14px 0 16px; letter-spacing: -0.01em; }
+.vrp-lead { font-size: 14.5px; line-height: 2; color: var(--ink-2); max-width: 46ch; }
+
+.vrp-cover { margin: 0; }
+.vrp-cover img {
+  width: 100%; aspect-ratio: 16 / 10; object-fit: cover; display: block;
+  border-radius: var(--r-lg); box-shadow: var(--sh-lg);
+}
+.vrp-cover figcaption { margin-top: 12px; font-size: 11.5px; color: var(--muted); letter-spacing: 0.02em; }
+
+/* ---------- 通用段落 ---------- */
+.vrp-sec { margin-top: 92px; scroll-margin-top: calc(var(--nav-h) + 24px); }
+.vrp-sec h2 { font-size: 25px; line-height: 1.4; margin: 14px 0 0; }
+.vrp-sec-head {
+  padding-bottom: 26px; border-bottom: 1px solid var(--line-2);
+}
+
+/* ---------- 预览图 ---------- */
+.vrp-stills {
+  list-style: none; margin: 30px 0 0; padding: 0;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px;
+}
+.vrp-stills figure { margin: 0; }
+.vrp-stills img {
+  width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block;
+  border-radius: var(--r-md); transition: transform 0.5s var(--ease);
+}
+.vrp-stills li { overflow: hidden; border-radius: var(--r-md); }
+.vrp-stills li:hover img { transform: scale(1.04); }
+.vrp-stills figcaption {
+  margin-top: 10px; font-size: 12px; line-height: 1.6; color: var(--ink-2);
+  display: flex; gap: 8px; align-items: baseline;
+}
+.vrp-stills figcaption span { font-size: 10.5px; letter-spacing: 0.08em; color: var(--accent); }
+
+/* ---------- 收尾 ---------- */
+.vrp-end {
+  position: relative; overflow: hidden; margin-top: 92px;
+  padding: 44px 48px; border-radius: var(--r-xl);
+  background: var(--surface); border: 1px solid var(--line-2);
+}
+.vrp-end p { margin: 0; font-size: 13.2px; line-height: 1.95; color: var(--ink-2); max-width: 62ch; }
+
+/* ---------- 响应式 ---------- */
+@media (max-width: 1180px) {
+  .vrp-hero { grid-template-columns: 1fr 380px; gap: 40px; }
+  .vrp-hero-copy h1 { font-size: 34px; }
+  .vrp-stills { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 860px) {
+  .wrap.vrp { padding-top: calc(var(--nav-h) + 44px); padding-bottom: 64px; }
+  .vrp-hero { grid-template-columns: 1fr; gap: 30px; }
+  .vrp-hero-copy h1 { font-size: 29px; }
+  .vrp-sec { margin-top: 64px; }
+  .vrp-sec h2 { font-size: 21px; }
+  .vrp-end { padding: 30px 24px; margin-top: 64px; }
+}
+
+@media (max-width: 520px) {
+  .vrp-stills { grid-template-columns: 1fr; gap: 14px; }
+}

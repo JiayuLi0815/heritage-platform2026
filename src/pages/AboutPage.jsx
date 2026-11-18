@@ -1,4 +1,5 @@
 import { IcLayers, IcSparkle } from '../components/icons.jsx'
+import './AboutPage.css'
 
 const LEVELS = [
   {
@@ -21,16 +22,14 @@ const LEVELS = [
   },
 ]
 
-/* 成员卡片先留位，等信息确认后只改这里 */
-const STUDENTS = ['01', '02', '03', '04'].map((n) => ({
-  n,
-  name: `同学 ${n}`,
-  r: '姓名与分工待补',
-}))
-
-const MENTORS = [
-  { n: '指', name: '指导教师', r: '姓名待补 · 同济大学人文学院' },
-  { n: '企', name: '企业合作单位', r: '单位名称待补' },
+/* 团队分工：直接罗列，不做头像卡片 */
+const TEAM = [
+  { role: '总策划', names: '臧志彭、解学芳' },
+  { role: '设计总监', names: '李家瑜、王翼菲' },
+  { role: '学术总监', names: '周迪晨' },
+  { role: '数字人形象设计', names: '王紫琪' },
+  { role: '研究团队', names: '魏赛、雷晨、贺雅楠、张思懿' },
+  { role: 'AI技术支持', names: '张金玉团队' },
 ]
 
 export default function AboutPage() {
@@ -81,31 +80,17 @@ export default function AboutPage() {
                 <IcLayers w={13} /> 团队
               </span>
               <h2>项目组成员</h2>
-              <p className="sub">
-                平台由同济大学人文学院 TJ 数智文化大模型虚拟实验室组织，学生成员四人，另有指导教师与企业合作单位。
-              </p>
             </div>
           </div>
 
-          <div className="cards-4">
-            {STUDENTS.map((p) => (
-              <div className="pane person todo" key={p.n}>
-                <div className="person-av">{p.name.slice(-2)}</div>
-                <div className="person-n">{p.name}</div>
-                <div className="person-r">{p.r}</div>
-              </div>
+          <ul className="team-list">
+            {TEAM.map((t) => (
+              <li key={t.role}>
+                <span className="team-role">{t.role}</span>
+                <span className="team-names">{t.names}</span>
+              </li>
             ))}
-          </div>
-
-          <div className="cards-2" style={{ marginTop: 18 }}>
-            {MENTORS.map((p) => (
-              <div className="pane person todo" key={p.n}>
-                <div className="person-av">{p.n}</div>
-                <div className="person-n">{p.name}</div>
-                <div className="person-r">{p.r}</div>
-              </div>
-            ))}
-          </div>
+          </ul>
         </div>
       </div>
     </div>

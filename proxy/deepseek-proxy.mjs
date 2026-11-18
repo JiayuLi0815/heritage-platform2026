@@ -6,8 +6,8 @@
    只要这个平台是公开可访问的，前端就不能持有真 Key。这个代理把 Key 留在
    服务器上，前端只拿到一个地址；限额、限流、每日预算都在这里执行。
 
-   启动（Key 只走环境变量，不写进任何文件）：
-     DEEPSEEK_API_KEY=sk-xxx node proxy/deepseek-proxy.mjs
+   启动（Key 写在 proxy/.env，或走环境变量；绝不写进前端）：
+     cp proxy/.env.example proxy/.env && node proxy/deepseek-proxy.mjs
    可选环境变量：
      PORT=8787                 端口
      ALLOW_ORIGINS=https://你的域名,http://localhost:5175
@@ -29,6 +29,23 @@ import { fileURLToPath } from 'node:url'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 
+/* 本地开发：把 Key 写进 proxy/.env（已在 .gitignore 里，不会进仓库）。
+   已有的环境变量优先，方便服务器上用 systemd 注入。 */
+function loadLocalEnv() {
+  let raw
+  try {
+    raw = fs.readFileSync(path.join(HERE, '.env'), 'utf8')
+  } catch {
+    return
+  }
+  for (const line of raw.split(/\r?\n/)) {
+    const m = /^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/.exec(line)
+    if (!m || process.env[m[1]] !== undefined) continue
+    process.env[m[1]] = m[2].trim().replace(/^["']|["']$/g, '')
+  }
+}
+loadLocalEnv()
+
 const KEY = process.env.DEEPSEEK_API_KEY || ''
 const PORT = Number(process.env.PORT || 8787)
 const DAILY_CNY = Number(process.env.DAILY_CNY || 2)
@@ -45,7 +62,7 @@ const ALLOW = (process.env.ALLOW_ORIGINS || 'http://localhost:5175,http://localh
   .filter(Boolean)
 
 if (!KEY) {
-  console.error('缺少 DEEPSEEK_API_KEY 环境变量，代理不启动。')
+  console.error('缺少 DEEPSEEK_API_KEY。写进 proxy/.env 或用环境变量传入后再启动。')
   process.exit(1)
 }
 

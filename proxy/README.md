@@ -8,18 +8,24 @@
 
 ## 本地跑
 
+Key 写在 `proxy/.env` 里（已 gitignore，权限建议 `chmod 600`）：
+
 ```bash
-DEEPSEEK_API_KEY=sk-xxx node proxy/deepseek-proxy.mjs
+cp proxy/.env.example proxy/.env   # 再把 DEEPSEEK_API_KEY 换成真 Key
+node proxy/deepseek-proxy.mjs
 curl http://127.0.0.1:8787/health
 ```
 
-然后另开一个终端起前端：
+代理启动时会读 `proxy/.env`；已有的环境变量优先，所以服务器上仍可按下面的方式用
+`Environment=` 注入。
 
-```bash
-VITE_DEEPSEEK_PROXY=http://127.0.0.1:8787 npx vite
+前端在项目根的 `.env.local` 里设：
+
+```
+VITE_DEEPSEEK_PROXY=http://127.0.0.1:8787
 ```
 
-`.env.local` 里设 `VITE_DEEPSEEK_PROXY` 也可以，但它是**构建时**变量，改了要重新 build。
+它是**构建时**变量，改了要重启 dev server 或重新 build。前端**不接受**任何 API Key 变量。
 
 ## 它拦什么
 

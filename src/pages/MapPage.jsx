@@ -687,6 +687,8 @@ export default function MapPage({ onOpenSite, setView = () => {}, initialMode = 
       <div className="wrap">
         <div className="map-stage">
           <aside className="atlas-map-sidebar" aria-label="遗产统计与分类">
+            {/* 修改：返回首页固定在左上角，地图页没有导航栏时也能一键回首页。 */}
+            <button className="atlas-map-home-link" onClick={() => setView('home')}>← 返回首页</button>
             <div className="atlas-map-heading"><span>THE WORLD HERITAGE ATLAS</span><h1>世界遗产地图</h1></div>
             <div className="atlas-map-stats">
               <div><strong>{ALL.length.toLocaleString()}</strong><span>世界遗产地</span></div>
@@ -697,7 +699,6 @@ export default function MapPage({ onOpenSite, setView = () => {}, initialMode = 
               {CATEGORIES.map(c => <button key={c} className={category === c ? 'active' : ''} aria-pressed={category === c} onClick={() => { setCategory(c); setHover(null) }}><CategoryIcon category={c}/><span>{c === '全部' ? '全部遗产' : `${c}遗产`}</span></button>)}
             </div>
             <div className="atlas-map-compass" aria-hidden="true"><span>N</span><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="35"/><circle cx="50" cy="50" r="29"/><path d="M50 6v88M6 50h88M25 25l50 50m0-50L25 75"/><path d="m50 13 7 30 30 7-30 7-7 30-7-30-30-7 30-7Z"/><path d="m50 13 7 30-7 7-7 7 7 30V50L13 50l30-7Z" fill="currentColor"/></svg><span>S</span><i>W</i><i>E</i></div>
-            <button className="atlas-map-home-link" onClick={() => setView('home')}>← 返回首页</button>
           </aside>
           <div className="atlas-map-canvas">
           <div className="atlas-map-topbar">

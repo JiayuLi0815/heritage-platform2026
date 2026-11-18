@@ -7,80 +7,28 @@ import { catalogBrief, catalogFacts } from './catalog-facts.js'
    ------------------------------------------------------------
    弘文的知识底座 = DeepSeek 大模型 + 本团队编著的
    《世界文化遗产数字化研究报告》（2025.11）。
-   没有 API Key 时整段自动让位给本地知识检索层（DigitalHuman.jsx 的
-   answer()），演示不依赖网络；有 Key 时把当前页面的事实、平台名录和
+   没配代理地址时整段自动让位给本地知识检索层（DigitalHuman.jsx 的
+   answer()），演示不依赖网络；走代理时把当前页面的事实、平台名录和
    报告里的结论作为【资料】一起发过去，再按弘文的说话方式生成回答。
 
-   接入方式：
-     VITE_DEEPSEEK_PROXY 优先——指向自建代理（proxy/deepseek-proxy.mjs），
-     Key 只在服务器上，前端拿不到，限额也在服务器执行。
-     没设代理时用 VITE_DEEPSEEK_API_KEY（.env.local）。**这个 Key 会被打进
-     公开 JS**，这是当前阶段的临时做法：等服务器下来，换成代理地址即可，
-     前端代码不用改。
+   接入方式（唯一）：
+     VITE_DEEPSEEK_PROXY 指向自建代理（proxy/deepseek-proxy.mjs）。
+     Key 只存在服务器（proxy/.env 或 systemd 的 Environment），前端拿不到，
+     限流与每日预算也在代理端执行。前端不再接受任何 API Key 变量，
+     避免 Key 被打进公开 JS。
+     没设代理地址时，整段回落到本地知识检索层。
    ============================================================ */
 
-const BASE = (import.meta.env.VITE_DEEPSEEK_BASE || 'https://api.deepseek.com').replace(/\/+$/, '')
 const PROXY = (import.meta.env.VITE_DEEPSEEK_PROXY || '').replace(/\/+$/, '')
 
-/* 'proxy' | 'key' | 'local' */
+/* 'proxy' | 'local' */
 export function llmMode() {
-  if (PROXY) return 'proxy'
-  if (import.meta.env.VITE_DEEPSEEK_API_KEY) return 'key'
-  return 'local'
+  return PROXY ? 'proxy' : 'local'
 }
 
 export function llmReady() {
   return llmMode() !== 'local'
 }
-
-function key() {
-  return import.meta.env.VITE_DEEPSEEK_API_KEY || ''
-}
-
-/* ---------- 当日用量与预算 ----------
-   在浏览器里存 Key 就守不住「别人拿走 Key 直接调接口」，
-   所以这里的上限只是演示机的安全带：防止自己把额度跑光。
-   真正的限额必须放在代理端（proxy/deepseek-proxy.mjs）。 */
-const UKEY = 'dh.deepseek.usage'
-
-/* 官方现价（deepseek-flash，¥/百万 tokens）约为 命中 0.02 / 未命中 1 / 输出 2；
-   这里按高价估算（命中 0.5 / 未命中 2 / 输出 8），宁可少算可用余额，也不少算花费。 */
-const RATE = { hit: 0.5, miss: 2, out: 8 }
-
-const dayKey = () => {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
-export function usageToday() {
-  try {
-    const u = JSON.parse(localStorage.getItem(UKEY) || 'null')
-    if (!u || u.d !== dayKey()) return { d: dayKey(), cny: 0, calls: 0 }
-    return u
-  } catch {
-    return { d: dayKey(), cny: 0, calls: 0 }
-  }
-}
-
-function costOf(u) {
-  if (!u) return 0
-  const hit = u.prompt_cache_hit_tokens || u.prompt_tokens_details?.cached_tokens || 0
-  const miss = u.prompt_cache_miss_tokens ?? Math.max(0, (u.prompt_tokens || 0) - hit)
-  return (hit * RATE.hit + miss * RATE.miss + (u.completion_tokens || 0) * RATE.out) / 1e6
-}
-
-function recordUsage(u) {
-  const t = usageToday()
-  t.cny += costOf(u)
-  t.calls += 1
-  try {
-    localStorage.setItem(UKEY, JSON.stringify(t))
-  } catch {
-    /* 隐私模式下只是不记账，不拦对话 */
-  }
-}
-
-export const DAILY_CAP = Number(import.meta.env.VITE_DH_DAILY_CNY || 2)
 
 const VAL = ['未发现可验证证据', '部分已实施', '已实施', '矩阵未判定']
 
@@ -134,11 +82,7 @@ const SYSTEM = `${HONGWEN_SKILL}
 
 /* 返回纯文本；失败时抛错，由调用方回落到本地知识库 */
 export async function ask(question, { site, history = [] } = {}) {
-  const mode = llmMode()
-  if (mode === 'local') throw new Error('no-key')
-
-  /* 走代理时预算由服务器算，这里不重复拦 */
-  if (mode === 'key' && usageToday().cny >= DAILY_CAP) throw new Error('budget')
+  if (!PROXY) throw new Error('no-proxy')
 
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), 20000)
@@ -155,13 +99,10 @@ export async function ask(question, { site, history = [] } = {}) {
     `\n【资产与许可】${licFact()}\n\n` +
     `【精选案例（名称｜国家｜列入年份）】\n${roster()}`
 
-  const headers = { 'Content-Type': 'application/json' }
-  if (mode === 'key') headers.Authorization = `Bearer ${key()}`
-
   try {
-    const res = await fetch(mode === 'proxy' ? `${PROXY}/chat` : `${BASE}/chat/completions`, {
+    const res = await fetch(`${PROXY}/chat`, {
       method: 'POST',
-      headers,
+      headers: { 'Content-Type': 'application/json' },
       signal: ctrl.signal,
       body: JSON.stringify({
         model: 'deepseek-chat',
@@ -175,11 +116,24 @@ export async function ask(question, { site, history = [] } = {}) {
       }),
     })
     if (res.status === 429) throw new Error('budget')
-    if (!res.ok) throw new Error(`deepseek ${res.status}`)
+    if (!res.ok) {
+      /* 代理把上游的 401 包成 502 + {status:401,detail}，这里单独标成密钥问题，
+         好让界面说「Key 无效」，而不是含糊的「没连上」。 */
+      let body = null
+      try {
+        body = await res.json()
+      } catch {
+        /* 不是 JSON 就按普通失败处理 */
+      }
+      const detail = body ? `${body.detail || ''}${JSON.stringify(body)}` : ''
+      if (res.status === 401 || body?.status === 401 || /authentication|invalid.*key|unauthorized/i.test(detail)) {
+        throw new Error('auth')
+      }
+      throw new Error(`deepseek ${res.status}`)
+    }
     const data = await res.json()
     const text = data?.choices?.[0]?.message?.content?.trim()
     if (!text) throw new Error('empty')
-    if (mode === 'key') recordUsage(data.usage)
     return text
   } finally {
     clearTimeout(timer)

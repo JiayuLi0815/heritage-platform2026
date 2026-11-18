@@ -123,6 +123,8 @@
 .atlas-home--editorial .atlas-entry-num { font-size: 12px; margin-bottom: 15px; }
 .atlas-entry-english { position: absolute; top: 17px; right: 13px; max-width: 95px; text-align: right; font: 6px/1.5 Georgia, serif; letter-spacing: .16em; opacity: .7; }
 .atlas-home--editorial .atlas-entry-copy h3 { font: 500 23px/1.4 var(--font-serif); color: #f7f3e7; }
+/* 修改：沉浸体验卡片的标题是完整项目名（10 个字），单独压一档字号，避免折行把正文挤出卡片。 */
+.atlas-home--editorial .atlas-entry-vr .atlas-entry-copy h3 { font-size: 18px; }
 .atlas-home--editorial .atlas-entry-copy p { font: 11px/1.7 var(--font-serif); color: #e0ded2; margin: 4px 0 11px; }
 .atlas-entry-actions { display: flex; align-items: center; gap: 6px; }
 .atlas-entry-actions > button { font: 10px/1.5 var(--font-serif); color: #e6e1d3; border: 1px solid #dfd6b69c; border-radius: 20px; padding: 4px 10px; transition: background .2s; }

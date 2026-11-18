@@ -12,7 +12,13 @@ dist-gh/
 # 线上站点由 gh-pages 分支承载，源码仓库只留可读的工程部分。
 public/img/gallery/
 public/models/
+# 一体机安装包（187 MB，本机打包产物，不进仓库）
+public/vr/*.apk
 .backup/
 backup/
 .archive/
 work/
+
+# 代理端密钥与用量账本（不进仓库）
+proxy/.env
+proxy/usage.json

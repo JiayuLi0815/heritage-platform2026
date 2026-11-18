@@ -1,69 +1,69 @@
-import { useEffect, useState } from 'react'
-import { IcArrowRight } from '../components/icons.jsx'
+import { asset } from '../asset.js'
+import './VrPage.css'
 
 /* ============================================================
-   《遗产现场》· WebXR 入口
+   《华夏文明探源·河山册》· 沉浸体验
    ------------------------------------------------------------
-   只留入口卡片。除卡片本身的必要说明外，页面不放其它文字——
-   展位上这一页就是一次「戴上头显」的动作。
-   原有的机制 / 流程 / 方案比较文案存档在 .archive/VrPage-2026-10-23.jsx。
+   只做展示：一段作品介绍 + 一体机内实拍/实时渲染的预览图。
+   不放安装包、二维码、规格表、安装引导，也不放视频。
    ============================================================ */
+
+const STILLS = [
+  { img: 'still-archive', t: '藏卷阁', s: '序章' },
+  { img: 'still-hub', t: '导览', s: '序章' },
+  { img: 'still-board', t: '河山册展板', s: '序章' },
+  { img: 'still-settlement', t: '良渚 · 聚落', s: '第一章' },
+  { img: 'still-liangzhu', t: '良渚 · 水利系统', s: '第一章' },
+  { img: 'still-qinling', t: '秦陵 · 陪葬坑', s: '第二章' },
+  { img: 'still-port', t: '泉州 · 港口', s: '第三章' },
+  { img: 'still-quanzhou', t: '泉州 · 海丝遗迹', s: '第三章' },
+  { img: 'still-epilogue', t: '河山册合璧', s: '终章' },
+]
+
 export default function VrPage() {
-  const [xr, setXr] = useState('checking')
-  const [note, setNote] = useState('')
-
-  useEffect(() => {
-    let alive = true
-    if (!('xr' in navigator)) {
-      setXr('none')
-      return
-    }
-    navigator.xr
-      .isSessionSupported('immersive-vr')
-      .then((ok) => alive && setXr(ok ? 'ok' : 'none'))
-      .catch(() => alive && setXr('none'))
-    return () => {
-      alive = false
-    }
-  }, [])
-
-  const launch = () => {
-    if (xr === 'ok') {
-      setNote('设备已就绪。原型场景还在做，接上之后这里会直接唤起 immersive-vr 会话——待上线。')
-    } else if (xr === 'none') {
-      setNote('这台设备没有可用的 immersive-vr 会话。用一体机浏览器打开本页，或者等桌面降级版上线。')
-    } else {
-      setNote('正在检测头显…')
-    }
-  }
-
   return (
-    <div className="wrap vr-page">
-      <div className="vr-launch">
-        <div>
-          <span className="kicker">入口</span>
-          <h2>戴上头显，从这里进</h2>
-          <p>
-            原型场景开发中。上线后本按钮会直接唤起 WebXR 会话，无需安装应用——
-            先在一体机浏览器里打开这个网址即可。
+    <div className="wrap vrp">
+      <section className="vrp-hero">
+        <div className="vrp-hero-copy">
+          <span className="kicker">沉浸体验 · 已完成作品</span>
+          <h1>华夏文明探源·河山册</h1>
+          <p className="vrp-lead">
+            《河山册》是一本可以在头显里翻开的三页之书：良渚的水、秦陵的土、泉州的海，各自压成一册。
+            体验者以第一人称走进藏卷阁，逐页寻回散落的文字；合上书的时候，三处世界遗产也连成了一条线。
           </p>
-          {note ? <p className="vr-note">{note}</p> : null}
         </div>
-        <div className="vr-launch-r">
-          <button className="btn btn-fill" onClick={launch}>
-            {xr === 'ok' ? '进入 VR 场景' : xr === 'checking' ? '检测设备中…' : '进入 VR 场景'}
-            <IcArrowRight w={16} />
-          </button>
-          <span className="vr-state">
-            <i className={`vr-dot ${xr}`} />
-            {xr === 'ok'
-              ? '已检测到 immersive-vr 设备'
-              : xr === 'checking'
-              ? '正在检测 WebXR'
-              : '未检测到头显，将使用桌面降级版'}
-          </span>
+        <figure className="vrp-cover">
+          <img src={asset('img/vr/cover.webp')} alt="《华夏文明探源·河山册》序章场景" />
+          <figcaption>画面来自一体机内的实时渲染</figcaption>
+        </figure>
+      </section>
+
+      <section className="vrp-sec" id="vrp-stills">
+        <div className="vrp-sec-head">
+          <span className="kicker">预览图</span>
+          <h2>三处遗址，九个瞬间</h2>
         </div>
-      </div>
+        <ul className="vrp-stills">
+          {STILLS.map((p) => (
+            <li key={p.img}>
+              <figure>
+                <img src={asset(`img/vr/${p.img}.webp`)} alt={`${p.t} 画面`} loading="lazy" />
+                <figcaption>
+                  <span>{p.s}</span>
+                  {p.t}
+                </figcaption>
+              </figure>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="vrp-end">
+        <p>
+          作品以原生应用的形式跑在一体机本地，戴上头显、扣上耳机就能开始，一轮 12 分半。
+          网站这边只留一份看得见的记录：这些画面，和这一段介绍。
+        </p>
+      </section>
     </div>
   )
 }
