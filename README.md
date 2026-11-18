@@ -8,7 +8,7 @@
 ##目录
 heritage-platform2026/
 ├─ index.html            唯一 HTML 入口，挂载 #root，引 Google Fonts
-├─ vite.config.js        base=/u/wangyifei/heritage/、5175 端口；VITE_GH_PAGES 时换素材目录
+├─ vite.config.js        构建 base=/u/wangyifei/heritage/、dev 走根路径、5175 端口；VITE_GH_PAGES 时换素材目录
 ├─ package.json          仅 4 个运行时依赖：react、react-dom、@google/model-viewer、meshoptimizer
 ├─ PROJECT.md            项目定位一页纸（做什么/不做什么/验收标准/分工）
 ├─ README.md             页面结构与构建说明
@@ -37,8 +37,46 @@ heritage-platform2026/
 
 ```bash
 npm install
-npm run dev        # http://localhost:5175
+npm run dev        # http://localhost:5175/
 ```
+
+`npm run dev` 用根路径，直接开 `http://localhost:5175/` 即可。只有构建产物才带
+`/u/wangyifei/heritage/` 前缀（`vite.config.js` 里的 `DEPLOY_BASE`），所以预览 `dist/`
+要开 `http://localhost:5175/u/wangyifei/heritage/`；想看根路径的构建就 `VITE_BASE=/ npm run build`。
+
+### 拉下来以后素材是缺的（重要）
+
+仓库只装代码和可读的工程文件。下面这些体积大的素材被 `.gitignore` 排除，**新克隆里是空的**：
+
+| 目录 | 内容 | 大小 |
+| --- | --- | --- |
+| `public/img/gallery/` | 991 处遗址的相册（缩略图 `tNN.webp` + 大图 `NN.webp`） | 1.2 GB |
+| `public/models/` | 各遗址的三维模型 `.glb` | 338 MB |
+| `public/vr/*.apk` | 一体机安装包 | 187 MB |
+| `proxy/.env` | DeepSeek 密钥 | — |
+
+这些缺失表现为「文字和版式都在、图是空白」，不是代码坏了。素材由素材盘经
+`scripts/build-gallery.mjs`、`scripts/build-models.mjs` 生成，或直接向项目负责人索取 `public/` 整包。
+
+反过来说，`public/img/vr/`（VR 页 11 张 webp，976 KB）和全部封面图是**入库**的，
+新克隆一定有；如果这几张也空白，先看是不是停在旧提交（`git log -1` 应为最新）或还在看旧的 `dist/`。
+
+### 图片是怎么被页面取到的
+
+`public/` 下的文件原样搬到网站根目录，代码里统一走 `src/asset.js`：
+
+```js
+export const asset = (p) => `${import.meta.env.BASE_URL}${p}`
+// asset('img/vr/cover.webp') → /u/wangyifei/heritage/img/vr/cover.webp（构建后）
+//                            → /img/vr/cover.webp（dev）
+```
+
+所以排查「图不显示」只要看浏览器 Network 里那条请求的完整 URL 与本地文件是否对得上。
+
+### 数字人「弘文」
+
+密钥只在服务端：复制 `proxy/.env.example` 为 `proxy/.env` 填入 `DEEPSEEK_API_KEY`，再启动代理
+（见 [proxy/README.md](./proxy/README.md)）。代理没起或没有 `.env`，页面上会表现为「DeepSeek 没接上」。
 
 ## 构建
 
